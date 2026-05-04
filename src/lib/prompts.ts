@@ -1,0 +1,66 @@
+import type { ManualFields, CustomField } from '@/types'
+
+export function buildAccessibilityAnalysisPrompt(
+  manualFields: ManualFields,
+  descriereScurta: string,
+  codSursa?: string,
+  customFields?: CustomField[]
+): string {
+  const customFieldsSchema = customFields
+    ?.filter((f) => f.aiGenerated)
+    .map((f) => {
+      const typeHint =
+        f.type === 'select' && f.options?.length
+          ? `string - una din: ${f.options.join(' | ')}`
+          : 'string'
+      return `  "${f.id}": "${typeHint} - ${f.label}"`
+    })
+    .join(',\n')
+
+  const customSchemaBlock = customFieldsSchema
+    ? `,\n  "customFields": {\n${customFieldsSchema}\n  }`
+    : ''
+
+  const codBlock = codSursa?.trim()
+    ? `\n## Cod sursă relevant (furnizat de auditor)\n\`\`\`\n${codSursa}\n\`\`\`\nFolosește acest cod pentru a genera o soluție tehnică precisă cu fix-ul exact aplicat pe structura existentă.\n`
+    : ''
+
+  return `Ești un expert în accesibilitate web cu cunoaștere profundă a standardelor WCAG 2.1 și 2.2. Analizezi o problemă de accesibilitate identificată în timpul unui audit profesional.
+
+## Context audit
+- Client: ${manualFields.client}
+- Pagina: ${manualFields.numePagina} (${manualFields.linkPagina})
+- Dispozitiv: ${manualFields.device}
+- Sistem de operare: ${manualFields.sistemDeOperare}
+- Browser: ${manualFields.browser}
+
+## Descrierea problemei (de la auditor)
+${descriereScurta}
+${codBlock}
+## Sarcina ta
+Generează o analiză completă a acestei probleme de accesibilitate.
+
+Răspunde EXCLUSIV cu un obiect JSON valid, fără text suplimentar, fără markdown, fără explicații în afara obiectului JSON.
+
+Schema JSON exactă cerută:
+{
+  "problema": "string - descriere tehnică detaliată a problemei (2-4 propoziții, în română)",
+  "solutiaNonTehnica": "string - explicație pentru client non-tehnic, fără jargon, scrisă ca pentru un manager de business (2-3 propoziții, în română)",
+  "solutiaTehnica": "string - codul de fix recomandat, complet și funcțional, cu comentarii explicative",
+  "wcag": "string - criteriul WCAG exact în format X.X.X (ex: 1.4.3, 2.1.1)",
+  "wcagCategori": "string - nivelul de conformitate WCAG, una din: A | AA | AAA",
+  "dizabilitate": "string - UN SINGUR tip de dizabilitate afectat (cea mai relevantă), una din: Persoana Slab Vazatoare | Daltonism | Motor | Cognitiv | Surditate | Fotosensibilitate",
+  "echipaDeInteres": "string - una din: Design | Dev | Content",
+  "prioritizare": "string - una din: Gold | Silver | Bronze",
+  "nivelComplexitate": "string - una din: Mare | Medie | Mica"${customSchemaBlock}
+}
+
+Reguli obligatorii:
+- "wcag" trebuie să fie un criteriu WCAG 2.1 sau 2.2 valid în format X.X.X
+- "wcagCategori" este nivelul de conformitate: A (cel mai de bază), AA (standard), AAA (cel mai strict)
+- "solutiaTehnica" trebuie să conțină cod HTML/CSS/JS/ARIA concret, nu descriere generică
+- "prioritizare" Gold = impact major asupra utilizatorilor, Bronze = impact minor
+- "nivelComplexitate" Mare = necesită refactoring semnificativ al componentelor
+- Dacă există imagine atașată, analizează-o vizual pentru a înțelege mai bine problema
+- Câmpurile "problema", "solutiaNonTehnica", "dizabilitate" trebuie scrise în limba română`
+}
