@@ -13,11 +13,12 @@ import { useCustomFields } from './useCustomFields'
 
 const initialManualFields: ManualFields = {
   client: '',
-  numePagina: '',
-  linkPagina: '',
-  device: 'desktop',
-  sistemDeOperare: '',
-  browser: '',
+  pageName: '',
+  pageLink: '',
+  appWebsiteName: '',
+  device: [],
+  operatingSystem: [],
+  browser: [],
 }
 
 export type FormStep = 1 | 2 | 3
@@ -88,7 +89,7 @@ export function useReportForm() {
       setAiAnalysis((prev) => {
         if (!prev) return prev
         const existing = prev.customFields?.[fieldId] ?? makeSuggestion('')
-        const updated: AISuggestion<string> = { ...existing, ...update } as AISuggestion<string>
+        const updated = { ...existing, ...update }
         return {
           ...prev,
           customFields: {

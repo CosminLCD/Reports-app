@@ -7,15 +7,16 @@ const client = new Anthropic({
 })
 
 interface RawAnalysis {
-  problema: string
-  solutiaNonTehnica: string
-  solutiaTehnica: string
+  problem: string
+  shortDescription: string
+  solution: string
+  technicalSolution: string
   wcag: string
-  wcagCategori: string
-  dizabilitate: string
-  echipaDeInteres: string
-  prioritizare: string
-  nivelComplexitate: string
+  wcagLevel: string
+  disability: string
+  teamOfInterest: string
+  prioritization: string
+  levelOfComplexity: string
   customFields?: Record<string, string>
 }
 
@@ -27,15 +28,16 @@ function transformToAISuggestions(raw: RawAnalysis): AIAnalysisResult {
     : undefined
 
   return {
-    problema: makeSuggestion(raw.problema),
-    solutiaNonTehnica: makeSuggestion(raw.solutiaNonTehnica),
-    solutiaTehnica: makeSuggestion(raw.solutiaTehnica),
-    wcag: makeSuggestion(raw.wcag),
-    wcagCategori: makeSuggestion(raw.wcagCategori as AIAnalysisResult['wcagCategori']['value']),
-    dizabilitate: makeSuggestion(raw.dizabilitate),
-    echipaDeInteres: makeSuggestion(raw.echipaDeInteres as AIAnalysisResult['echipaDeInteres']['value']),
-    prioritizare: makeSuggestion(raw.prioritizare as AIAnalysisResult['prioritizare']['value']),
-    nivelComplexitate: makeSuggestion(raw.nivelComplexitate as AIAnalysisResult['nivelComplexitate']['value']),
+    problem: makeSuggestion(raw.problem ?? ''),
+    shortDescription: makeSuggestion(raw.shortDescription ?? ''),
+    solution: makeSuggestion(raw.solution ?? ''),
+    technicalSolution: makeSuggestion(raw.technicalSolution ?? ''),
+    wcag: makeSuggestion(raw.wcag ?? ''),
+    wcagLevel: makeSuggestion((raw.wcagLevel ?? '') as AIAnalysisResult['wcagLevel']['value']),
+    disability: makeSuggestion(raw.disability ?? ''),
+    teamOfInterest: makeSuggestion(raw.teamOfInterest ?? ''),
+    prioritization: makeSuggestion(raw.prioritization ?? ''),
+    levelOfComplexity: makeSuggestion(raw.levelOfComplexity ?? ''),
     customFields,
   }
 }

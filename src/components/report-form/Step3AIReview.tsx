@@ -4,14 +4,15 @@ import { useState } from 'react'
 import { SuggestionCard } from '@/components/ai-suggestions/SuggestionCard'
 import { WCAGBadge } from '@/components/shared/WCAGBadge'
 import { PriorityBadge, ComplexityBadge } from '@/components/shared/PriorityBadge'
-import type { AIAnalysisResult, AISuggestion, CustomField, Prioritizare, NivelComplexitate, WCAGLevel, EchipaDeInteres } from '@/types'
+import type { AIAnalysisResult, AISuggestion, CustomField } from '@/types'
 import { getEffectiveValue } from '@/types'
-import type { FieldOptions } from '@/app/api/airtable-meta/route'
+import type { FieldOptions, FieldNames } from '@/app/api/airtable-meta/route'
 
 interface Step3Props {
   analysis: AIAnalysisResult
   customFieldDefs: CustomField[]
   airtableOptions: FieldOptions
+  fieldNames: FieldNames
   onUpdateSuggestion: (field: keyof AIAnalysisResult, update: Partial<AISuggestion>) => void
   onUpdateCustomSuggestion: (fieldId: string, update: Partial<AISuggestion>) => void
   onSubmit: () => Promise<void>
@@ -24,6 +25,7 @@ export function Step3AIReview({
   analysis,
   customFieldDefs,
   airtableOptions,
+  fieldNames,
   onUpdateSuggestion,
   onUpdateCustomSuggestion,
   onSubmit,
@@ -39,12 +41,12 @@ export function Step3AIReview({
   }
 
   const wcagValue = getEffectiveValue(analysis.wcag) ?? ''
-  const priorityValue = getEffectiveValue(analysis.prioritizare) as Prioritizare | undefined
-  const complexityValue = getEffectiveValue(analysis.nivelComplexitate) as NivelComplexitate | undefined
+  const priorityValue = getEffectiveValue(analysis.prioritization)
+  const complexityValue = getEffectiveValue(analysis.levelOfComplexity)
 
   return (
     <div className="space-y-5">
-      {/* Sumarul de sus */}
+      {/* Sumar */}
       <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 flex flex-wrap gap-3 items-center">
         <span className="text-sm font-medium text-gray-600">Sumar:</span>
         {wcagValue && <WCAGBadge criterion={wcagValue} />}
@@ -58,14 +60,24 @@ export function Step3AIReview({
       {/* Problema */}
       <section>
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Problema</h3>
-        <SuggestionCard
-          label="Descriere problemă"
-          suggestion={analysis.problema as AISuggestion<string>}
-          onAccept={() => onUpdateSuggestion('problema', { accepted: true, rejected: false })}
-          onEdit={(v) => onUpdateSuggestion('problema', { edited: true, accepted: false, rejected: false, userValue: v })}
-          onReject={() => onUpdateSuggestion('problema', { rejected: true, accepted: false, edited: false })}
-          multiline
-        />
+        <div className="space-y-3">
+          <SuggestionCard
+            label="Descriere scurtă"
+            suggestion={analysis.shortDescription as AISuggestion<string>}
+            onAccept={() => onUpdateSuggestion('shortDescription', { accepted: true, rejected: false })}
+            onEdit={(v) => onUpdateSuggestion('shortDescription', { edited: true, accepted: false, rejected: false, userValue: v })}
+            onReject={() => onUpdateSuggestion('shortDescription', { rejected: true, accepted: false, edited: false })}
+            hint="Max 25 cuvinte"
+          />
+          <SuggestionCard
+            label="Descriere detaliată"
+            suggestion={analysis.problem as AISuggestion<string>}
+            onAccept={() => onUpdateSuggestion('problem', { accepted: true, rejected: false })}
+            onEdit={(v) => onUpdateSuggestion('problem', { edited: true, accepted: false, rejected: false, userValue: v })}
+            onReject={() => onUpdateSuggestion('problem', { rejected: true, accepted: false, edited: false })}
+            multiline
+          />
+        </div>
       </section>
 
       {/* Clasificare WCAG */}
@@ -82,11 +94,11 @@ export function Step3AIReview({
           />
           <SuggestionCard
             label="Nivel WCAG"
-            suggestion={analysis.wcagCategori as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('wcagCategori', { accepted: true, rejected: false })}
-            onEdit={(v) => onUpdateSuggestion('wcagCategori', { edited: true, accepted: false, rejected: false, userValue: v as WCAGLevel })}
-            onReject={() => onUpdateSuggestion('wcagCategori', { rejected: true, accepted: false, edited: false })}
-            selectOptions={airtableOptions['WCAG Type']?.length ? airtableOptions['WCAG Type'] : ['A', 'AA', 'AAA']}
+            suggestion={analysis.wcagLevel as AISuggestion<string>}
+            onAccept={() => onUpdateSuggestion('wcagLevel', { accepted: true, rejected: false })}
+            onEdit={(v) => onUpdateSuggestion('wcagLevel', { edited: true, accepted: false, rejected: false, userValue: v as 'A' | 'AA' | 'AAA' })}
+            onReject={() => onUpdateSuggestion('wcagLevel', { rejected: true, accepted: false, edited: false })}
+            selectOptions={airtableOptions[fieldNames.wcagLevel] ?? []}
           />
         </div>
       </section>
@@ -97,19 +109,19 @@ export function Step3AIReview({
         <div className="space-y-3">
           <SuggestionCard
             label="Soluție non-tehnică"
-            suggestion={analysis.solutiaNonTehnica as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('solutiaNonTehnica', { accepted: true, rejected: false })}
-            onEdit={(v) => onUpdateSuggestion('solutiaNonTehnica', { edited: true, accepted: false, rejected: false, userValue: v })}
-            onReject={() => onUpdateSuggestion('solutiaNonTehnica', { rejected: true, accepted: false, edited: false })}
+            suggestion={analysis.solution as AISuggestion<string>}
+            onAccept={() => onUpdateSuggestion('solution', { accepted: true, rejected: false })}
+            onEdit={(v) => onUpdateSuggestion('solution', { edited: true, accepted: false, rejected: false, userValue: v })}
+            onReject={() => onUpdateSuggestion('solution', { rejected: true, accepted: false, edited: false })}
             multiline
             hint="Explicație pentru client non-tehnic"
           />
           <SuggestionCard
             label="Soluție tehnică (cod)"
-            suggestion={analysis.solutiaTehnica as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('solutiaTehnica', { accepted: true, rejected: false })}
-            onEdit={(v) => onUpdateSuggestion('solutiaTehnica', { edited: true, accepted: false, rejected: false, userValue: v })}
-            onReject={() => onUpdateSuggestion('solutiaTehnica', { rejected: true, accepted: false, edited: false })}
+            suggestion={analysis.technicalSolution as AISuggestion<string>}
+            onAccept={() => onUpdateSuggestion('technicalSolution', { accepted: true, rejected: false })}
+            onEdit={(v) => onUpdateSuggestion('technicalSolution', { edited: true, accepted: false, rejected: false, userValue: v })}
+            onReject={() => onUpdateSuggestion('technicalSolution', { rejected: true, accepted: false, edited: false })}
             multiline
             hint="Fix tehnic recomandat cu cod"
           />
@@ -122,35 +134,35 @@ export function Step3AIReview({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <SuggestionCard
             label="Dizabilitate afectată"
-            suggestion={analysis.dizabilitate as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('dizabilitate', { accepted: true, rejected: false })}
-            onEdit={(v) => onUpdateSuggestion('dizabilitate', { edited: true, accepted: false, rejected: false, userValue: v })}
-            onReject={() => onUpdateSuggestion('dizabilitate', { rejected: true, accepted: false, edited: false })}
-            selectOptions={airtableOptions['Dizabilitate']?.length ? airtableOptions['Dizabilitate'] : undefined}
+            suggestion={analysis.disability as AISuggestion<string>}
+            onAccept={() => onUpdateSuggestion('disability', { accepted: true, rejected: false })}
+            onEdit={(v) => onUpdateSuggestion('disability', { edited: true, accepted: false, rejected: false, userValue: v })}
+            onReject={() => onUpdateSuggestion('disability', { rejected: true, accepted: false, edited: false })}
+            selectOptions={airtableOptions[fieldNames.disability] ?? []}
           />
           <SuggestionCard
             label="Echipă de interes"
-            suggestion={analysis.echipaDeInteres as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('echipaDeInteres', { accepted: true, rejected: false })}
-            onEdit={(v) => onUpdateSuggestion('echipaDeInteres', { edited: true, accepted: false, rejected: false, userValue: v as EchipaDeInteres })}
-            onReject={() => onUpdateSuggestion('echipaDeInteres', { rejected: true, accepted: false, edited: false })}
-            selectOptions={airtableOptions['Echipa De Interes']?.length ? airtableOptions['Echipa De Interes'] : ['Design', 'Dev', 'Content']}
+            suggestion={analysis.teamOfInterest as AISuggestion<string>}
+            onAccept={() => onUpdateSuggestion('teamOfInterest', { accepted: true, rejected: false })}
+            onEdit={(v) => onUpdateSuggestion('teamOfInterest', { edited: true, accepted: false, rejected: false, userValue: v })}
+            onReject={() => onUpdateSuggestion('teamOfInterest', { rejected: true, accepted: false, edited: false })}
+            selectOptions={airtableOptions[fieldNames.team] ?? []}
           />
           <SuggestionCard
             label="Prioritizare"
-            suggestion={analysis.prioritizare as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('prioritizare', { accepted: true, rejected: false })}
-            onEdit={(v) => onUpdateSuggestion('prioritizare', { edited: true, accepted: false, rejected: false, userValue: v as Prioritizare })}
-            onReject={() => onUpdateSuggestion('prioritizare', { rejected: true, accepted: false, edited: false })}
-            selectOptions={airtableOptions['Prioritizare']?.length ? airtableOptions['Prioritizare'] : ['Gold', 'Silver', 'Bronze']}
+            suggestion={analysis.prioritization as AISuggestion<string>}
+            onAccept={() => onUpdateSuggestion('prioritization', { accepted: true, rejected: false })}
+            onEdit={(v) => onUpdateSuggestion('prioritization', { edited: true, accepted: false, rejected: false, userValue: v })}
+            onReject={() => onUpdateSuggestion('prioritization', { rejected: true, accepted: false, edited: false })}
+            selectOptions={airtableOptions[fieldNames.prioritization] ?? []}
           />
           <SuggestionCard
             label="Nivel de complexitate"
-            suggestion={analysis.nivelComplexitate as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('nivelComplexitate', { accepted: true, rejected: false })}
-            onEdit={(v) => onUpdateSuggestion('nivelComplexitate', { edited: true, accepted: false, rejected: false, userValue: v as NivelComplexitate })}
-            onReject={() => onUpdateSuggestion('nivelComplexitate', { rejected: true, accepted: false, edited: false })}
-            selectOptions={airtableOptions['Nivel de complexitate']?.length ? airtableOptions['Nivel de complexitate'] : ['Mare', 'Medie', 'Mica']}
+            suggestion={analysis.levelOfComplexity as AISuggestion<string>}
+            onAccept={() => onUpdateSuggestion('levelOfComplexity', { accepted: true, rejected: false })}
+            onEdit={(v) => onUpdateSuggestion('levelOfComplexity', { edited: true, accepted: false, rejected: false, userValue: v })}
+            onReject={() => onUpdateSuggestion('levelOfComplexity', { rejected: true, accepted: false, edited: false })}
+            selectOptions={airtableOptions[fieldNames.complexity] ?? []}
           />
         </div>
       </section>

@@ -1,29 +1,26 @@
 // ─── Enums & Literals ────────────────────────────────────────────────────────
 
 export type WCAGLevel = 'A' | 'AA' | 'AAA'
-export type EchipaDeInteres = 'Design' | 'Dev' | 'Content'
-export type Prioritizare = string   // valori custom din Airtable (ex: Gold, Silver, Bronze)
-export type NivelComplexitate = 'Mare' | 'Medie' | 'Mica'
-export type Device = string
 export type CustomFieldType = 'text' | 'select' | 'number'
 
 // ─── Manual Fields (Pasul 1) ──────────────────────────────────────────────────
 
 export interface ManualFields {
   client: string
-  numePagina: string
-  linkPagina: string
-  device: Device
-  sistemDeOperare: string
-  browser: string
+  pageName: string
+  pageLink: string
+  appWebsiteName: string
+  device: string[]
+  operatingSystem: string[]
+  browser: string[]
 }
 
 // ─── Image Data ───────────────────────────────────────────────────────────────
 
 export interface ImageData {
-  base64: string        // fără prefixul "data:image/...;base64,"
-  mimeType: string      // "image/png" | "image/jpeg" | "image/webp" | "image/gif"
-  previewUrl: string    // data URL complet pentru preview
+  base64: string
+  mimeType: string
+  previewUrl: string
   fileName: string
 }
 
@@ -31,10 +28,10 @@ export interface ImageData {
 
 export interface AISuggestion<T = string> {
   value: T
-  accepted: boolean     // acceptat fără modificări
-  edited: boolean       // modificat de utilizator
-  rejected: boolean     // respins — necesită completare manuală
-  userValue?: T         // valoarea introdusă de utilizator (dacă edited)
+  accepted: boolean
+  edited: boolean
+  rejected: boolean
+  userValue?: T
 }
 
 export function getEffectiveValue<T>(s: AISuggestion<T>): T | undefined {
@@ -48,15 +45,16 @@ export function makeSuggestion<T>(value: T): AISuggestion<T> {
 }
 
 export interface AIAnalysisResult {
-  problema: AISuggestion<string>
-  solutiaNonTehnica: AISuggestion<string>
-  solutiaTehnica: AISuggestion<string>
+  problem: AISuggestion<string>
+  shortDescription: AISuggestion<string>
+  solution: AISuggestion<string>
+  technicalSolution: AISuggestion<string>
   wcag: AISuggestion<string>
-  wcagCategori: AISuggestion<WCAGLevel>
-  dizabilitate: AISuggestion<string>
-  echipaDeInteres: AISuggestion<EchipaDeInteres>
-  prioritizare: AISuggestion<Prioritizare>
-  nivelComplexitate: AISuggestion<NivelComplexitate>
+  wcagLevel: AISuggestion<WCAGLevel>
+  disability: AISuggestion<string>
+  teamOfInterest: AISuggestion<string>
+  prioritization: AISuggestion<string>
+  levelOfComplexity: AISuggestion<string>
   customFields?: Record<string, AISuggestion<string>>
 }
 
@@ -67,7 +65,7 @@ export interface CustomField {
   label: string
   airtableColumnName: string
   type: CustomFieldType
-  options?: string[]      // pentru type === 'select'
+  options?: string[]
   aiGenerated: boolean
   required: boolean
 }
@@ -104,22 +102,22 @@ export interface ReportSubmitResponse {
 // ─── Airtable Record ──────────────────────────────────────────────────────────
 
 export interface AirtableRecord {
-  // Câmpuri text — obligatorii
   Client: string
-  'Page Name': string
-  'Page Link': string
-  Device: string
-  'Sistem de operare': string
+  'Page Name': string[]
+  'Page Link': string[]
+  'App/Website Name': string[]
+  Device: string[]
+  'Operating System': string[]
   Browser: string[]
-  Problema: string
-  'Soluție': string
-  'Soluție Tehnică': string
-  // Câmpuri select — opționale (omise dacă goale, evită erori Airtable)
-  Dizabilitate?: string
+  Problem: string
+  'Short Description': string
+  Solution: string
+  'Technical Solution': string
+  Disability?: string[]
   WCAG?: string
-  'WCAG Type'?: string
-  'Echipa De Interes'?: string
-  Prioritizare?: string
-  'Nivel de complexitate'?: string
+  'WCAG Level'?: string
+  'Team of Interest'?: string[]
+  Prioritization?: string
+  'Level of complexity'?: string
   [key: string]: string | string[] | undefined
 }

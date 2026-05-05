@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils'
-import type { Prioritizare, NivelComplexitate } from '@/types'
 
 const priorityConfig: Record<string, { label: string; className: string }> = {
   Gold: { label: 'Gold', className: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
@@ -7,19 +6,19 @@ const priorityConfig: Record<string, { label: string; className: string }> = {
   Bronze: { label: 'Bronze', className: 'bg-orange-100 text-orange-800 border-orange-200' },
 }
 
-const complexityConfig: Record<NivelComplexitate, { label: string; className: string }> = {
+const complexityConfig: Record<string, { label: string; className: string }> = {
   Mare: { label: 'Complexitate Mare', className: 'bg-red-50 text-red-700 border-red-200' },
   Medie: { label: 'Complexitate Medie', className: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
   Mica: { label: 'Complexitate Mică', className: 'bg-green-50 text-green-700 border-green-200' },
 }
 
 interface PriorityBadgeProps {
-  priority: Prioritizare
+  priority: string
   className?: string
 }
 
 interface ComplexityBadgeProps {
-  complexity: NivelComplexitate
+  complexity: string
   className?: string
 }
 

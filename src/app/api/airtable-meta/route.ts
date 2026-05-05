@@ -25,6 +25,48 @@ export interface FieldOptions {
   [fieldName: string]: string[]
 }
 
+export interface FieldNames {
+  client: string
+  pageName: string
+  pageLink: string
+  appName: string
+  device: string
+  os: string
+  browser: string
+  problem: string
+  shortDesc: string
+  solution: string
+  techSolution: string
+  wcag: string
+  wcagLevel: string
+  disability: string
+  team: string
+  prioritization: string
+  complexity: string
+}
+
+function getFieldNames(): FieldNames {
+  return {
+    client: process.env.AIRTABLE_FIELD_CLIENT ?? 'Client',
+    pageName: process.env.AIRTABLE_FIELD_PAGE_NAME ?? 'Page Name',
+    pageLink: process.env.AIRTABLE_FIELD_PAGE_LINK ?? 'Page Link',
+    appName: process.env.AIRTABLE_FIELD_APP_NAME ?? 'App/Website Name',
+    device: process.env.AIRTABLE_FIELD_DEVICE ?? 'Device',
+    os: process.env.AIRTABLE_FIELD_OS ?? 'Operating System',
+    browser: process.env.AIRTABLE_FIELD_BROWSER ?? 'Browser',
+    problem: process.env.AIRTABLE_FIELD_PROBLEM ?? 'Problem',
+    shortDesc: process.env.AIRTABLE_FIELD_SHORT_DESC ?? 'Short Description',
+    solution: process.env.AIRTABLE_FIELD_SOLUTION ?? 'Solution',
+    techSolution: process.env.AIRTABLE_FIELD_TECH_SOLUTION ?? 'Technical Solution',
+    wcag: process.env.AIRTABLE_FIELD_WCAG ?? 'WCAG',
+    wcagLevel: process.env.AIRTABLE_FIELD_WCAG_LEVEL ?? 'WCAG Level',
+    disability: process.env.AIRTABLE_FIELD_DISABILITY ?? 'Disability',
+    team: process.env.AIRTABLE_FIELD_TEAM ?? 'Team of Interest',
+    prioritization: process.env.AIRTABLE_FIELD_PRIORITIZATION ?? 'Prioritization',
+    complexity: process.env.AIRTABLE_FIELD_COMPLEXITY ?? 'Level of complexity',
+  }
+}
+
 export async function GET(): Promise<NextResponse> {
   try {
     const baseId = process.env.AIRTABLE_BASE_ID
@@ -35,7 +77,7 @@ export async function GET(): Promise<NextResponse> {
       `https://api.airtable.com/v0/meta/bases/${baseId}/tables`,
       {
         headers: { Authorization: `Bearer ${apiKey}` },
-        next: { revalidate: 60 }, // cache 60 secunde
+        next: { revalidate: 60 },
       }
     )
 
@@ -60,7 +102,9 @@ export async function GET(): Promise<NextResponse> {
       }
     }
 
-    return NextResponse.json({ success: true, fieldOptions })
+    const fieldNames = getFieldNames()
+
+    return NextResponse.json({ success: true, fieldOptions, fieldNames })
   } catch (error) {
     console.error('Eroare Airtable Meta:', error)
     return NextResponse.json({ success: false, error: 'Nu s-au putut încărca opțiunile' }, { status: 500 })

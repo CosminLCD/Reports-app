@@ -29,10 +29,10 @@ export function buildAccessibilityAnalysisPrompt(
 
 ## Context audit
 - Client: ${manualFields.client}
-- Pagina: ${manualFields.numePagina} (${manualFields.linkPagina})
-- Dispozitiv: ${manualFields.device}
-- Sistem de operare: ${manualFields.sistemDeOperare}
-- Browser: ${manualFields.browser}
+- Pagina: ${manualFields.pageName} (${manualFields.pageLink})
+- Dispozitiv: ${manualFields.device.join(', ')}
+- Sistem de operare: ${manualFields.operatingSystem.join(', ')}
+- Browser: ${manualFields.browser.join(', ')}
 
 ## Descrierea problemei (de la auditor)
 ${descriereScurta}
@@ -44,23 +44,25 @@ Răspunde EXCLUSIV cu un obiect JSON valid, fără text suplimentar, fără mark
 
 Schema JSON exactă cerută:
 {
-  "problema": "string - descriere tehnică detaliată a problemei (2-4 propoziții, în română)",
-  "solutiaNonTehnica": "string - explicație pentru client non-tehnic, fără jargon, scrisă ca pentru un manager de business (2-3 propoziții, în română)",
-  "solutiaTehnica": "string - codul de fix recomandat, complet și funcțional, cu comentarii explicative",
+  "problem": "string - descriere tehnică detaliată a problemei (2-4 propoziții, în română)",
+  "shortDescription": "string - rezumat scurt al problemei în maxim 25 de cuvinte, în română",
+  "solution": "string - explicație pentru client non-tehnic, fără jargon, scrisă ca pentru un manager de business (2-3 propoziții, în română)",
+  "technicalSolution": "string - codul de fix recomandat, complet și funcțional, cu comentarii explicative",
   "wcag": "string - criteriul WCAG exact în format X.X.X (ex: 1.4.3, 2.1.1)",
-  "wcagCategori": "string - nivelul de conformitate WCAG, una din: A | AA | AAA",
-  "dizabilitate": "string - UN SINGUR tip de dizabilitate afectat (cea mai relevantă), una din: Persoana Slab Vazatoare | Daltonism | Motor | Cognitiv | Surditate | Fotosensibilitate",
-  "echipaDeInteres": "string - una din: Design | Dev | Content",
-  "prioritizare": "string - una din: Gold | Silver | Bronze",
-  "nivelComplexitate": "string - una din: Mare | Medie | Mica"${customSchemaBlock}
+  "wcagLevel": "string - nivelul de conformitate WCAG, una din: A | AA | AAA",
+  "disability": "string - UN SINGUR tip de dizabilitate afectat (cea mai relevantă), una din: Persoana Slab Vazatoare | Daltonism | Motor | Cognitiv | Surditate | Fotosensibilitate",
+  "teamOfInterest": "string - una din: Design | Dev | Content",
+  "prioritization": "string - una din: Gold | Silver | Bronze",
+  "levelOfComplexity": "string - una din: Mare | Medie | Mica"${customSchemaBlock}
 }
 
 Reguli obligatorii:
 - "wcag" trebuie să fie un criteriu WCAG 2.1 sau 2.2 valid în format X.X.X
-- "wcagCategori" este nivelul de conformitate: A (cel mai de bază), AA (standard), AAA (cel mai strict)
-- "solutiaTehnica" trebuie să conțină cod HTML/CSS/JS/ARIA concret, nu descriere generică
-- "prioritizare" Gold = impact major asupra utilizatorilor, Bronze = impact minor
-- "nivelComplexitate" Mare = necesită refactoring semnificativ al componentelor
+- "wcagLevel" este nivelul de conformitate: A (cel mai de bază), AA (standard), AAA (cel mai strict)
+- "shortDescription" trebuie să fie maxim 25 de cuvinte
+- "technicalSolution" trebuie să conțină cod HTML/CSS/JS/ARIA concret, nu descriere generică
+- "prioritization" Gold = impact major asupra utilizatorilor, Bronze = impact minor
+- "levelOfComplexity" Mare = necesită refactoring semnificativ al componentelor
 - Dacă există imagine atașată, analizează-o vizual pentru a înțelege mai bine problema
-- Câmpurile "problema", "solutiaNonTehnica", "dizabilitate" trebuie scrise în limba română`
+- Câmpurile "problem", "shortDescription", "solution", "disability" trebuie scrise în limba română`
 }

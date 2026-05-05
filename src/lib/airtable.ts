@@ -1,10 +1,33 @@
-import { getEffectiveValue, type AirtableRecord, type AIAnalysisResult, type CustomField, type ManualFields } from '@/types'
+import { getEffectiveValue, type AIAnalysisResult, type CustomField, type ManualFields } from '@/types'
 
-const BASE_URL = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${encodeURIComponent(process.env.AIRTABLE_TABLE_NAME ?? 'Issues')}`
+const BASE_URL = `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${encodeURIComponent(process.env.AIRTABLE_TABLE_NAME ?? 'Website Reports')}`
 
-// Câmpurile select nu acceptă string gol — le omitem dacă nu au valoare
-function setIfNotEmpty(record: AirtableRecord, key: string, value: string | string[] | undefined) {
-  if (!value || (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.every(v => !v.trim()))) return
+const F = {
+  CLIENT:       process.env.AIRTABLE_FIELD_CLIENT       ?? 'Client',
+  PAGE_NAME:    process.env.AIRTABLE_FIELD_PAGE_NAME    ?? 'Page Name',
+  PAGE_LINK:    process.env.AIRTABLE_FIELD_PAGE_LINK    ?? 'Page Link',
+  APP_NAME:     process.env.AIRTABLE_FIELD_APP_NAME     ?? 'App/Website Name',
+  DEVICE:       process.env.AIRTABLE_FIELD_DEVICE       ?? 'Device',
+  OS:           process.env.AIRTABLE_FIELD_OS           ?? 'Operating System',
+  BROWSER:      process.env.AIRTABLE_FIELD_BROWSER      ?? 'Browser',
+  PROBLEM:      process.env.AIRTABLE_FIELD_PROBLEM      ?? 'Problem',
+  SHORT_DESC:   process.env.AIRTABLE_FIELD_SHORT_DESC   ?? 'Short Description',
+  SOLUTION:     process.env.AIRTABLE_FIELD_SOLUTION     ?? 'Solution',
+  TECH_SOLUTION:process.env.AIRTABLE_FIELD_TECH_SOLUTION?? 'Technical Solution',
+  WCAG:         process.env.AIRTABLE_FIELD_WCAG         ?? 'WCAG',
+  WCAG_LEVEL:   process.env.AIRTABLE_FIELD_WCAG_LEVEL   ?? 'WCAG Level',
+  DISABILITY:   process.env.AIRTABLE_FIELD_DISABILITY   ?? 'Disability',
+  TEAM:         process.env.AIRTABLE_FIELD_TEAM         ?? 'Team of Interest',
+  PRIORITIZATION: process.env.AIRTABLE_FIELD_PRIORITIZATION ?? 'Prioritization',
+  COMPLEXITY:   process.env.AIRTABLE_FIELD_COMPLEXITY   ?? 'Level of complexity',
+}
+
+type AirtableFields = Record<string, string | string[] | undefined>
+
+function setIfNotEmpty(record: AirtableFields, key: string, value: string | string[] | undefined) {
+  if (!value) return
+  if (typeof value === 'string' && value.trim() === '') return
+  if (Array.isArray(value) && value.every(v => !v.trim())) return
   record[key] = value
 }
 
@@ -12,28 +35,33 @@ export function buildAirtableRecord(
   manualFields: ManualFields,
   analysis: AIAnalysisResult,
   customFieldDefs?: CustomField[]
-): AirtableRecord {
-  const record: AirtableRecord = {
-    Client: manualFields.client,
-    'Page Name': manualFields.numePagina,
-    'Page Link': manualFields.linkPagina,
-    Device: manualFields.device,
-    'Sistem de operare': manualFields.sistemDeOperare,
-    Browser: [manualFields.browser],
-    Problema: getEffectiveValue(analysis.problema) ?? '',
-    'Soluție': getEffectiveValue(analysis.solutiaNonTehnica) ?? '',
-    'Soluție Tehnică': getEffectiveValue(analysis.solutiaTehnica) ?? '',
+): AirtableFields {
+  const record: AirtableFields = {
+    [F.CLIENT]:       manualFields.client,
+    [F.PAGE_NAME]:    manualFields.pageName ? [manualFields.pageName] : [],
+    [F.PAGE_LINK]:    manualFields.pageLink ? [manualFields.pageLink] : [],
+    [F.APP_NAME]:     manualFields.appWebsiteName ? [manualFields.appWebsiteName] : [],
+    [F.DEVICE]:       manualFields.device,
+    [F.OS]:           manualFields.operatingSystem,
+    [F.BROWSER]:      manualFields.browser,
+    [F.PROBLEM]:      getEffectiveValue(analysis.problem) ?? '',
+    [F.SHORT_DESC]:   getEffectiveValue(analysis.shortDescription) ?? '',
+    [F.SOLUTION]:     getEffectiveValue(analysis.solution) ?? '',
+    [F.TECH_SOLUTION]:getEffectiveValue(analysis.technicalSolution) ?? '',
   }
 
-  // Câmpuri select — trimise doar dacă au valoare
-  setIfNotEmpty(record, 'WCAG', getEffectiveValue(analysis.wcag))
-  setIfNotEmpty(record, 'WCAG Type', getEffectiveValue(analysis.wcagCategori))
-  setIfNotEmpty(record, 'Dizabilitate', getEffectiveValue(analysis.dizabilitate))
-  setIfNotEmpty(record, 'Echipa De Interes', getEffectiveValue(analysis.echipaDeInteres))
-  setIfNotEmpty(record, 'Prioritizare', getEffectiveValue(analysis.prioritizare))
-  setIfNotEmpty(record, 'Nivel de complexitate', getEffectiveValue(analysis.nivelComplexitate))
+  setIfNotEmpty(record, F.WCAG, getEffectiveValue(analysis.wcag))
+  setIfNotEmpty(record, F.WCAG_LEVEL, getEffectiveValue(analysis.wcagLevel))
 
-  // Câmpuri custom
+  const disability = getEffectiveValue(analysis.disability)
+  if (disability) record[F.DISABILITY] = [disability]
+
+  const team = getEffectiveValue(analysis.teamOfInterest)
+  if (team) record[F.TEAM] = [team]
+
+  setIfNotEmpty(record, F.PRIORITIZATION, getEffectiveValue(analysis.prioritization))
+  setIfNotEmpty(record, F.COMPLEXITY, getEffectiveValue(analysis.levelOfComplexity))
+
   if (customFieldDefs && analysis.customFields) {
     for (const field of customFieldDefs) {
       const suggestion = analysis.customFields[field.id]
@@ -46,9 +74,7 @@ export function buildAirtableRecord(
   return record
 }
 
-export async function createAirtableRecord(
-  fields: AirtableRecord
-): Promise<string> {
+export async function createAirtableRecord(fields: AirtableFields): Promise<string> {
   const response = await fetch(BASE_URL, {
     method: 'POST',
     headers: {
@@ -60,9 +86,7 @@ export async function createAirtableRecord(
 
   if (!response.ok) {
     const error = await response.text()
-    // Afișează URL-ul (fără cheia API) pentru debugging
-    const debugUrl = `https://airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${process.env.AIRTABLE_TABLE_NAME}`
-    throw new Error(`Eroare Airtable (${response.status}): ${error}\nURL apelat: ${debugUrl}`)
+    throw new Error(`Eroare Airtable (${response.status}): ${error}`)
   }
 
   const result = await response.json() as { id: string }

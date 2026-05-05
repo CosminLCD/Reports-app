@@ -14,7 +14,7 @@ import type { AIAnalysisResult, AISuggestion } from '@/types'
 export function ReportForm() {
   const router = useRouter()
   const [customManualValues, setCustomManualValues] = useState<Record<string, string>>({})
-  const { options: airtableOptions } = useAirtableOptions()
+  const { options: airtableOptions, fieldNames } = useAirtableOptions()
 
   const {
     step,
@@ -58,6 +58,7 @@ export function ReportForm() {
           onCustomChange={(id, val) => setCustomManualValues((prev) => ({ ...prev, [id]: val }))}
           onNext={() => goToStep(2)}
           airtableOptions={airtableOptions}
+          fieldNames={fieldNames}
         />
       )}
 
@@ -83,6 +84,7 @@ export function ReportForm() {
           analysis={aiAnalysis}
           customFieldDefs={customFields}
           airtableOptions={airtableOptions}
+          fieldNames={fieldNames}
           onUpdateSuggestion={(field, update) =>
             updateSuggestion(field as keyof AIAnalysisResult, update as Partial<AISuggestion>)
           }
