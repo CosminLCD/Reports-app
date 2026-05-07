@@ -10,7 +10,8 @@ import type {
   WCAGLevel,
   Step1Memory,
 } from '@/types'
-import { makeSuggestion } from '@/types'
+import { makeSuggestion, getEffectiveValue } from '@/types'
+import type { RegenerableField } from '@/lib/prompts'
 import { useCustomFields } from './useCustomFields'
 
 const STEP1_MEMORY_KEY = 'apass_last_report_step1'
@@ -223,6 +224,33 @@ export function useReportForm() {
     setError(null)
   }, [])
 
+  const regenerateField = useCallback(
+    async (field: RegenerableField, comment: string): Promise<void> => {
+      const currentSuggestion = aiAnalysis?.[field]
+      const currentValue = currentSuggestion ? (getEffectiveValue(currentSuggestion) ?? '') : ''
+
+      const response = await fetch('/api/regenerate-field', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          field,
+          comment,
+          currentValue,
+          manualFields,
+          descriereScurta,
+          codSursa: codSursa.trim() || undefined,
+          images: [...images, ...aiImages].map((img) => ({ base64: img.base64, mimeType: img.mimeType })),
+        }),
+      })
+      const data = await response.json() as { success: boolean; value?: string; error?: string }
+      if (!data.success || data.value === undefined) {
+        throw new Error(data.error ?? 'Eroare la regenerare')
+      }
+      updateSuggestion(field, { value: data.value, accepted: true, edited: false, rejected: false })
+    },
+    [manualFields, descriereScurta, codSursa, images, aiImages, aiAnalysis, updateSuggestion]
+  )
+
   const reset = useCallback(() => {
     setStep(1)
     setManualFields(initialManualFields)
@@ -265,6 +293,7 @@ export function useReportForm() {
     enableManualMode,
     updateSuggestion,
     updateCustomSuggestion,
+    regenerateField,
     submitReport,
     reset,
   }

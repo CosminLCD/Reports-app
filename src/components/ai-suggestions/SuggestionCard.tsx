@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Pencil, X, Bot, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, Pencil, X, Bot, ChevronDown, ChevronUp, MessageSquare, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { AISuggestion } from '@/types'
 
@@ -11,6 +11,7 @@ interface SuggestionCardProps {
   onAccept: () => void
   onEdit: (value: string) => void
   onReject: () => void
+  onRegenerate?: (comment: string) => Promise<void>
   multiline?: boolean
   selectOptions?: string[]
   hint?: string
@@ -48,6 +49,7 @@ export function SuggestionCard({
   onAccept,
   onEdit,
   onReject,
+  onRegenerate,
   multiline = false,
   selectOptions,
   hint,
@@ -57,6 +59,10 @@ export function SuggestionCard({
   const [isEditing, setIsEditing] = useState(initialEditMode)
   const [editValue, setEditValue] = useState(suggestion.userValue ?? suggestion.value)
   const [expanded, setExpanded] = useState(false)
+  const [isCommentOpen, setIsCommentOpen] = useState(false)
+  const [comment, setComment] = useState('')
+  const [isRegenerating, setIsRegenerating] = useState(false)
+  const [regenerateError, setRegenerateError] = useState<string | null>(null)
 
   const displayValue = suggestion.edited
     ? (suggestion.userValue ?? suggestion.value)
@@ -82,6 +88,33 @@ export function SuggestionCard({
   const handleReject = () => {
     setIsEditing(false)
     onReject()
+  }
+
+  const handleOpenComment = () => {
+    setIsCommentOpen(true)
+    setComment('')
+    setRegenerateError(null)
+  }
+
+  const handleCancelComment = () => {
+    setIsCommentOpen(false)
+    setComment('')
+    setRegenerateError(null)
+  }
+
+  const handleRegenerate = async () => {
+    if (!onRegenerate || !comment.trim()) return
+    setIsRegenerating(true)
+    setRegenerateError(null)
+    try {
+      await onRegenerate(comment.trim())
+      setIsCommentOpen(false)
+      setComment('')
+    } catch (e) {
+      setRegenerateError(e instanceof Error ? e.message : 'Eroare la regenerare')
+    } finally {
+      setIsRegenerating(false)
+    }
   }
 
   if (isEditing) {
@@ -141,34 +174,45 @@ export function SuggestionCard({
           <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{label}</span>
         </div>
 
-        {/* Butoane acțiune */}
-        {state !== 'rejected' && state === 'pending' && (
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleAccept}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
-              title="Acceptă sugestia"
-            >
-              <Check size={11} /> Accept
-            </button>
-            <button
-              onClick={handleReject}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-              title="Respinge sugestia"
-            >
-              <X size={11} /> Respinge
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-1">
+          {state !== 'rejected' && state === 'pending' && (
+            <>
+              <button
+                onClick={handleAccept}
+                className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
+                title="Acceptă sugestia"
+              >
+                <Check size={11} /> Accept
+              </button>
+              <button
+                onClick={handleReject}
+                className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                title="Respinge sugestia"
+              >
+                <X size={11} /> Respinge
+              </button>
+            </>
+          )}
 
-        {state === 'rejected' && (
-          <button
-            onClick={handleStartEdit}
-            className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            <Pencil size={11} /> Completează manual
-          </button>
-        )}
+          {state === 'rejected' && (
+            <button
+              onClick={handleStartEdit}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <Pencil size={11} /> Completează manual
+            </button>
+          )}
+
+          {onRegenerate && !isCommentOpen && (
+            <button
+              onClick={handleOpenComment}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors"
+              title="Trimite feedback la AI pentru regenerare"
+            >
+              <MessageSquare size={11} /> Comentează
+            </button>
+          )}
+        </div>
       </div>
 
       {state === 'rejected' ? (
@@ -199,6 +243,53 @@ export function SuggestionCard({
       )}
 
       {hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
+
+      {isCommentOpen && (
+        <div className="mt-3 pt-3 border-t border-purple-200">
+          <p className="text-xs text-purple-700 font-medium mb-1.5">Feedback pentru AI — descrie ce vrei să schimbi:</p>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleRegenerate()
+              if (e.key === 'Escape') handleCancelComment()
+            }}
+            rows={2}
+            autoFocus
+            placeholder="Ex: Fă-o mai scurtă, adaugă detalii despre contrast..."
+            className="w-full rounded border border-purple-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 resize-none"
+          />
+          {regenerateError && (
+            <p className="mt-1 text-xs text-red-600">{regenerateError}</p>
+          )}
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={handleRegenerate}
+              disabled={isRegenerating || !comment.trim()}
+              className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isRegenerating ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Regenerează...
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={11} /> Regenerează
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleCancelComment}
+              disabled={isRegenerating}
+              className="px-3 py-1 rounded text-xs font-medium text-gray-600 hover:bg-white/60 disabled:opacity-50 transition-colors"
+            >
+              Anulează
+            </button>
+            <span className="ml-auto text-xs text-gray-400">Ctrl+Enter pentru a trimite</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

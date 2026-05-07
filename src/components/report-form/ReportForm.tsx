@@ -41,6 +41,7 @@ export function ReportForm() {
     enableManualMode,
     updateSuggestion,
     updateCustomSuggestion,
+    regenerateField,
     submitReport,
   } = useReportForm()
 
@@ -111,6 +112,7 @@ export function ReportForm() {
             updateSuggestion(field as keyof AIAnalysisResult, update as Partial<AISuggestion>)
           }
           onUpdateCustomSuggestion={updateCustomSuggestion}
+          onRegenerateField={regenerateField}
           onSubmit={handleSubmit}
           onBack={() => goToStep(2)}
           isSubmitting={isSubmitting}

@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { buildAccessibilityAnalysisPrompt, type PromptSelectOptions } from './prompts'
+import { buildAccessibilityAnalysisPrompt, buildFieldRegenerationPrompt, type PromptSelectOptions, type RegenerableField } from './prompts'
 import { makeSuggestion, type AIAnalysisResult, type ManualFields, type CustomField } from '@/types'
 
 const client = new Anthropic({
@@ -101,4 +101,41 @@ export async function analyzeAccessibilityIssue(
 
   const rawAnalysis: RawAnalysis = JSON.parse(jsonMatch[0])
   return transformToAISuggestions(rawAnalysis)
+}
+
+export async function regenerateSingleField(
+  field: RegenerableField,
+  currentValue: string,
+  comment: string,
+  manualFields: ManualFields,
+  descriereScurta: string,
+  codSursa?: string,
+  images?: Array<{ base64: string; mimeType: string }>,
+): Promise<string> {
+  const textPrompt = buildFieldRegenerationPrompt(field, currentValue, comment, manualFields, descriereScurta, codSursa)
+
+  const contentBlocks: (ImageBlock | TextBlock)[] = []
+
+  if (images && images.length > 0) {
+    for (const img of images) {
+      contentBlocks.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: img.mimeType as ImageBlock['source']['media_type'],
+          data: img.base64,
+        },
+      })
+    }
+  }
+
+  contentBlocks.push({ type: 'text', text: textPrompt })
+
+  const message = await client.messages.create({
+    model: 'claude-opus-4-5',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: contentBlocks }],
+  })
+
+  return message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 }

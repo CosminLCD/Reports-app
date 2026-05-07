@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { buildAccessibilityAnalysisPrompt, type PromptSelectOptions } from './prompts'
+import { buildAccessibilityAnalysisPrompt, buildFieldRegenerationPrompt, type PromptSelectOptions, type RegenerableField } from './prompts'
 import { makeSuggestion, type AIAnalysisResult, type ManualFields, type CustomField } from '@/types'
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
@@ -79,4 +79,32 @@ export async function analyzeAccessibilityIssue(
 
   const rawAnalysis: RawAnalysis = JSON.parse(jsonMatch[0])
   return transformToAISuggestions(rawAnalysis)
+}
+
+export async function regenerateSingleField(
+  field: RegenerableField,
+  currentValue: string,
+  comment: string,
+  manualFields: ManualFields,
+  descriereScurta: string,
+  codSursa?: string,
+  images?: Array<{ base64: string; mimeType: string }>,
+): Promise<string> {
+  const textPrompt = buildFieldRegenerationPrompt(field, currentValue, comment, manualFields, descriereScurta, codSursa)
+
+  const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const parts: any[] = []
+
+  if (images && images.length > 0) {
+    for (const img of images) {
+      parts.push({ inlineData: { data: img.base64, mimeType: img.mimeType } })
+    }
+  }
+
+  parts.push({ text: textPrompt })
+
+  const result = await model.generateContent({ contents: [{ role: 'user', parts }] })
+  return result.response.text().trim()
 }

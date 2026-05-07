@@ -1,5 +1,50 @@
 import type { ManualFields, CustomField } from '@/types'
 
+export type RegenerableField = 'shortDescription' | 'problem' | 'solution' | 'technicalSolution'
+
+const fieldInstructions: Record<RegenerableField, string> = {
+  shortDescription: 'Descriere scurtă a problemei — maxim 20 de cuvinte, în română.',
+  problem: 'Descriere tehnică detaliată a problemei — 2-4 propoziții, în română.',
+  solution: 'Soluție explicată pentru un client non-tehnic (manager de business) — 2-3 propoziții, fără jargon, în română.',
+  technicalSolution: 'Soluție tehnică cu cod HTML/CSS/JS/ARIA complet și funcțional, cu comentarii explicative.',
+}
+
+export function buildFieldRegenerationPrompt(
+  field: RegenerableField,
+  currentValue: string,
+  comment: string,
+  manualFields: ManualFields,
+  descriereScurta: string,
+  codSursa?: string,
+): string {
+  const pagesLine = manualFields.pages.map((p) => `${p.pageName} (${p.pageLink})`).join(', ')
+  const codBlock = codSursa?.trim()
+    ? `\n## Cod sursă relevant\n\`\`\`\n${codSursa}\n\`\`\`\n`
+    : ''
+
+  return `Ești un expert în accesibilitate web. Ai generat anterior conținut pentru o problemă de accesibilitate.
+
+## Context audit
+- Client: ${manualFields.client}
+- Pagini: ${pagesLine}
+- Dispozitiv: ${manualFields.device.join(', ')}
+- Sistem de operare: ${manualFields.operatingSystem.join(', ')}
+- Browser: ${manualFields.browser.join(', ')}
+
+## Descrierea problemei (de la auditor)
+${descriereScurta}${codBlock}
+## Valoarea curentă generată de AI
+${currentValue}
+
+## Feedback utilizator
+${comment}
+
+## Sarcina ta
+Regenerează EXCLUSIV câmpul: ${fieldInstructions[field]}
+
+Răspunde EXCLUSIV cu noua valoare a câmpului, fără JSON, fără explicații, fără text suplimentar. Doar conținutul câmpului.`
+}
+
 export interface PromptSelectOptions {
   disability?: string[]
   teamOfInterest?: string[]
@@ -57,7 +102,7 @@ Răspunde EXCLUSIV cu un obiect JSON valid, fără text suplimentar, fără mark
 Schema JSON exactă cerută:
 {
   "problem": "string - descriere tehnică detaliată a problemei (2-4 propoziții, în română)",
-  "shortDescription": "string - rezumat scurt al problemei în maxim 25 de cuvinte, în română",
+  "shortDescription": "string - rezumat scurt al problemei în maxim 20 de cuvinte, în română",
   "solution": "string - explicație pentru client non-tehnic, fără jargon, scrisă ca pentru un manager de business (2-3 propoziții, în română)",
   "technicalSolution": "string - codul de fix recomandat, complet și funcțional, cu comentarii explicative",
   "wcag": "string - criteriul WCAG exact în format X.X.X (ex: 1.4.3, 2.1.1)",
@@ -71,7 +116,7 @@ Schema JSON exactă cerută:
 Reguli obligatorii:
 - "wcag" trebuie să fie un criteriu WCAG 2.1 sau 2.2 valid în format X.X.X
 - "wcagLevel" este nivelul de conformitate: A (cel mai de bază), AA (standard), AAA (cel mai strict)
-- "shortDescription" trebuie să fie maxim 25 de cuvinte
+- "shortDescription" trebuie să fie maxim 20 de cuvinte
 - "technicalSolution" trebuie să conțină cod HTML/CSS/JS/ARIA concret, nu descriere generică
 - "prioritization" Gold = impact major asupra utilizatorilor, Bronze = impact minor
 - "levelOfComplexity" Mare = necesită refactoring semnificativ al componentelor

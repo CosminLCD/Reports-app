@@ -49,6 +49,8 @@ function MetadataSelectCard({
   )
 }
 
+type RegenerableField = 'shortDescription' | 'problem' | 'solution' | 'technicalSolution'
+
 interface Step3Props {
   analysis: AIAnalysisResult
   customFieldDefs: CustomField[]
@@ -56,6 +58,7 @@ interface Step3Props {
   fieldNames: FieldNames
   onUpdateSuggestion: (field: keyof AIAnalysisResult, update: Partial<AISuggestion>) => void
   onUpdateCustomSuggestion: (fieldId: string, update: Partial<AISuggestion>) => void
+  onRegenerateField: (field: RegenerableField, comment: string) => Promise<void>
   onSubmit: () => Promise<boolean>
   onBack: () => void
   isSubmitting: boolean
@@ -70,6 +73,7 @@ export function Step3AIReview({
   fieldNames,
   onUpdateSuggestion,
   onUpdateCustomSuggestion,
+  onRegenerateField,
   onSubmit,
   onBack,
   isSubmitting,
@@ -117,6 +121,7 @@ export function Step3AIReview({
             onAccept={() => onUpdateSuggestion('shortDescription', { accepted: true, rejected: false })}
             onEdit={(v) => onUpdateSuggestion('shortDescription', { edited: true, accepted: false, rejected: false, userValue: v })}
             onReject={() => onUpdateSuggestion('shortDescription', { rejected: true, accepted: false, edited: false })}
+            onRegenerate={(c) => onRegenerateField('shortDescription', c)}
             hint="Max 25 cuvinte"
           />
           <SuggestionCard
@@ -125,6 +130,7 @@ export function Step3AIReview({
             onAccept={() => onUpdateSuggestion('problem', { accepted: true, rejected: false })}
             onEdit={(v) => onUpdateSuggestion('problem', { edited: true, accepted: false, rejected: false, userValue: v })}
             onReject={() => onUpdateSuggestion('problem', { rejected: true, accepted: false, edited: false })}
+            onRegenerate={(c) => onRegenerateField('problem', c)}
             multiline
           />
         </div>
@@ -161,6 +167,7 @@ export function Step3AIReview({
             onAccept={() => onUpdateSuggestion('solution', { accepted: true, rejected: false })}
             onEdit={(v) => onUpdateSuggestion('solution', { edited: true, accepted: false, rejected: false, userValue: v })}
             onReject={() => onUpdateSuggestion('solution', { rejected: true, accepted: false, edited: false })}
+            onRegenerate={(c) => onRegenerateField('solution', c)}
             multiline
             hint="Explicație pentru client non-tehnic"
           />
@@ -170,6 +177,7 @@ export function Step3AIReview({
             onAccept={() => onUpdateSuggestion('technicalSolution', { accepted: true, rejected: false })}
             onEdit={(v) => onUpdateSuggestion('technicalSolution', { edited: true, accepted: false, rejected: false, userValue: v })}
             onReject={() => onUpdateSuggestion('technicalSolution', { rejected: true, accepted: false, edited: false })}
+            onRegenerate={(c) => onRegenerateField('technicalSolution', c)}
             multiline
             hint="Fix tehnic recomandat cu cod"
           />
