@@ -1,12 +1,28 @@
+import fs from 'fs'
+import path from 'path'
 import type { ManualFields, CustomField } from '@/types'
 
 export type RegenerableField = 'shortDescription' | 'problem' | 'solution' | 'technicalSolution'
 
+function loadFieldInstructions(filename: string): string {
+  return fs.readFileSync(
+    path.join(process.cwd(), 'src', 'lib', 'prompts', filename),
+    'utf-8'
+  )
+}
+
+const fieldMarkdown: Record<RegenerableField, string> = {
+  shortDescription: loadFieldInstructions('short-description.md'),
+  problem: loadFieldInstructions('problem.md'),
+  solution: loadFieldInstructions('solution.md'),
+  technicalSolution: loadFieldInstructions('technical-solution.md'),
+}
+
 const fieldInstructions: Record<RegenerableField, string> = {
-  shortDescription: 'Descriere scurtă a problemei — maxim 20 de cuvinte, în română.',
-  problem: 'Descriere tehnică detaliată a problemei — 2-4 propoziții, în română.',
-  solution: 'Soluție explicată pentru un client non-tehnic (manager de business) — 2-3 propoziții, fără jargon, în română.',
-  technicalSolution: 'Soluție tehnică cu cod HTML/CSS/JS/ARIA complet și funcțional, cu comentarii explicative.',
+  shortDescription: 'maxim 20 de cuvinte, în română',
+  problem: '2-4 propoziții tehnice, în română',
+  solution: '2-3 propoziții non-tehnice pentru manager de business, în română',
+  technicalSolution: 'cod HTML/CSS/JS/ARIA complet și funcțional cu comentarii',
 }
 
 export function buildFieldRegenerationPrompt(
@@ -39,8 +55,11 @@ ${currentValue}
 ## Feedback utilizator
 ${comment}
 
+## Instrucțiuni detaliate pentru câmpul „${field}"
+${fieldMarkdown[field]}
+
 ## Sarcina ta
-Regenerează EXCLUSIV câmpul: ${fieldInstructions[field]}
+Regenerează EXCLUSIV câmpul „${field}" (${fieldInstructions[field]}), respectând instrucțiunile de mai sus și feedback-ul utilizatorului.
 
 Răspunde EXCLUSIV cu noua valoare a câmpului, fără JSON, fără explicații, fără text suplimentar. Doar conținutul câmpului.`
 }
@@ -94,32 +113,47 @@ export function buildAccessibilityAnalysisPrompt(
 ## Descrierea problemei (de la auditor)
 ${descriereScurta}
 ${codBlock}
+## Instrucțiuni detaliate pentru câmpuri
+
+### shortDescription
+${fieldMarkdown.shortDescription}
+
+### problem
+${fieldMarkdown.problem}
+
+### solution
+${fieldMarkdown.solution}
+
+### technicalSolution
+${fieldMarkdown.technicalSolution}
+
 ## Sarcina ta
-Generează o analiză completă a acestei probleme de accesibilitate.
+Generează o analiză completă a acestei probleme de accesibilitate respectând instrucțiunile de mai sus pentru fiecare câmp.
 
 Răspunde EXCLUSIV cu un obiect JSON valid, fără text suplimentar, fără markdown, fără explicații în afara obiectului JSON.
 
 Schema JSON exactă cerută:
 {
-  "problem": "string - descriere tehnică detaliată a problemei (2-4 propoziții, în română)",
-  "shortDescription": "string - rezumat scurt al problemei în maxim 20 de cuvinte, în română",
-  "solution": "string - explicație pentru client non-tehnic, fără jargon, scrisă ca pentru un manager de business (2-3 propoziții, în română)",
-  "technicalSolution": "string - codul de fix recomandat, complet și funcțional, cu comentarii explicative",
-  "wcag": "string - criteriul WCAG exact în format X.X.X (ex: 1.4.3, 2.1.1)",
+  "problem": "string - ${fieldInstructions.problem}",
+  "shortDescription": "string - ${fieldInstructions.shortDescription}",
+  "solution": "string - ${fieldInstructions.solution}",
+  "technicalSolution": "string - ${fieldInstructions.technicalSolution}",
+  "wcag": "string - criteriile WCAG relevante în format X.X.X, separate prin '/' dacă sunt mai multe (ex: \"1.4.3\" sau \"1.4.3/2.1.1\" sau \"1.3.1/1.4.1/2.4.6\"). Include toate criteriile care se aplică problemei, maxim 3.",
   "wcagLevel": "string - nivelul de conformitate WCAG, una din: A | AA | AAA",
-  "disability": "string - UN SINGUR tip de dizabilitate afectat (cea mai relevantă)${selectOptions?.disability?.length ? `, una din: ${selectOptions.disability.join(' | ')}` : ''}",
-  "teamOfInterest": "string${selectOptions?.teamOfInterest?.length ? ` - una din: ${selectOptions.teamOfInterest.join(' | ')}` : ' - echipa responsabilă'}",
+  "disability": "string - tipurile de dizabilitate afectate${selectOptions?.disability?.length ? `, una sau mai multe din: ${selectOptions.disability.join(' | ')}, separate prin '/' dacă sunt mai multe (ex: \"Visual\" sau \"Visual/Motor\")` : ', separate prin \"/\" dacă sunt mai multe'}",
+  "teamOfInterest": "string - echipele responsabile${selectOptions?.teamOfInterest?.length ? `, una sau mai multe din: ${selectOptions.teamOfInterest.join(' | ')}, separate prin '/' dacă sunt mai multe (ex: \"Design\" sau \"Design/Tehnic\")` : ', separate prin \"/\" dacă sunt mai multe'}",
   "prioritization": "string${selectOptions?.prioritization?.length ? ` - una din: ${selectOptions.prioritization.join(' | ')}` : ' - prioritatea problemei'}",
   "levelOfComplexity": "string${selectOptions?.levelOfComplexity?.length ? ` - una din: ${selectOptions.levelOfComplexity.join(' | ')}` : ' - complexitatea remedierii'}"${customSchemaBlock}
 }
 
 Reguli obligatorii:
-- "wcag" trebuie să fie un criteriu WCAG 2.1 sau 2.2 valid în format X.X.X
+- "wcag" trebuie să conțină criterii WCAG 2.1 sau 2.2 valide în format X.X.X; dacă problema afectează mai multe criterii, include-le pe toate (max 3), separate prin '/'
 - "wcagLevel" este nivelul de conformitate: A (cel mai de bază), AA (standard), AAA (cel mai strict)
 - "shortDescription" trebuie să fie maxim 20 de cuvinte
 - "technicalSolution" trebuie să conțină cod HTML/CSS/JS/ARIA concret, nu descriere generică
 - "prioritization" Gold = impact major asupra utilizatorilor, Bronze = impact minor
 - "levelOfComplexity" Mare = necesită refactoring semnificativ al componentelor
 - Dacă există imagine atașată, analizează-o vizual pentru a înțelege mai bine problema
+- "disability" trebuie să conțină doar valori din lista furnizată, separate prin '/' dacă sunt mai multe
 - Câmpurile "problem", "shortDescription", "solution", "disability" trebuie scrise în limba română`
 }

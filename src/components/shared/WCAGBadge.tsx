@@ -5,7 +5,6 @@ interface WCAGBadgeProps {
   className?: string
 }
 
-// Detectează nivelul din criteriu: 1.x = Perceivable, 2.x = Operable, 3.x = Understandable, 4.x = Robust
 function getCriterionColor(criterion: string): string {
   const num = parseFloat(criterion)
   if (num >= 1 && num < 2) return 'bg-blue-100 text-blue-800 border-blue-200'
@@ -16,6 +15,26 @@ function getCriterionColor(criterion: string): string {
 }
 
 export function WCAGBadge({ criterion, className }: WCAGBadgeProps) {
+  const criteria = criterion.split('/').map((c) => c.trim()).filter(Boolean)
+
+  if (criteria.length > 1) {
+    return (
+      <span className={cn('inline-flex flex-wrap gap-1', className)}>
+        {criteria.map((c) => (
+          <span
+            key={c}
+            className={cn(
+              'inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold border',
+              getCriterionColor(c)
+            )}
+          >
+            WCAG {c}
+          </span>
+        ))}
+      </span>
+    )
+  }
+
   return (
     <span
       className={cn(

@@ -23,10 +23,9 @@ function MetadataSelectCard({
   const onEditRef = useRef(onEdit)
   onEditRef.current = onEdit
 
-  // When options load and no value is set yet, auto-select first option
-  // so visual state matches what gets sent to Airtable
   useEffect(() => {
-    if (!current && options.length > 0) {
+    if (options.length === 0) return
+    if (!current || !options.includes(current)) {
       onEditRef.current(options[0])
     }
   }, [current, options.length])
@@ -45,6 +44,158 @@ function MetadataSelectCard({
           <option key={opt} value={opt}>{opt}</option>
         ))}
       </select>
+    </div>
+  )
+}
+
+function MultiToggleCard({
+  label,
+  suggestion,
+  options,
+  onEdit,
+}: {
+  label: string
+  suggestion: AISuggestion<string>
+  options: string[]
+  onEdit: (v: string) => void
+}) {
+  const onEditRef = useRef(onEdit)
+  onEditRef.current = onEdit
+
+  const parseSelected = (s: AISuggestion<string>, opts: string[]) => {
+    const val = getEffectiveValue(s) ?? ''
+    const parsed = val.split('/').map((x) => x.trim()).filter((x) => opts.includes(x))
+    return parsed.length > 0 ? parsed : opts.length > 0 ? [opts[0]] : []
+  }
+
+  const [selected, setSelected] = useState<string[]>(() => parseSelected(suggestion, options))
+
+  useEffect(() => {
+    if (options.length === 0) return
+    const next = parseSelected(suggestion, options)
+    setSelected(next)
+    onEditRef.current(next.join('/'))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestion.value, suggestion.userValue, options.length])
+
+  const toggle = (opt: string) => {
+    const next = selected.includes(opt)
+      ? selected.filter((s) => s !== opt)
+      : [...selected, opt]
+    const final = next.length > 0 ? next : [opt]
+    setSelected(final)
+    onEditRef.current(final.join('/'))
+  }
+
+  return (
+    <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-3 sm:col-span-2">
+      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+        {label}
+      </label>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => toggle(opt)}
+            className={`px-2.5 py-1 rounded border text-xs font-medium transition-colors ${
+              selected.includes(opt)
+                ? 'bg-blue-500 text-white border-blue-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:text-blue-600'
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function WCAGChipsCard({
+  suggestion,
+  onEdit,
+}: {
+  suggestion: AISuggestion<string>
+  onEdit: (v: string) => void
+}) {
+  const onEditRef = useRef(onEdit)
+  onEditRef.current = onEdit
+
+  const parseChips = (s: AISuggestion<string>) =>
+    (getEffectiveValue(s) ?? '').split('/').map((c) => c.trim()).filter(Boolean)
+
+  const [chips, setChips] = useState<string[]>(() => parseChips(suggestion))
+  const [inputVal, setInputVal] = useState('')
+
+  useEffect(() => {
+    const next = parseChips(suggestion)
+    setChips(next)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestion.value, suggestion.userValue])
+
+  const updateChips = (next: string[]) => {
+    setChips(next)
+    onEditRef.current(next.join('/'))
+  }
+
+  const removeChip = (i: number) => {
+    const next = chips.filter((_, idx) => idx !== i)
+    if (next.length === 0) return
+    updateChips(next)
+  }
+
+  const addChip = () => {
+    const val = inputVal.trim()
+    if (!val) return
+    if (!/^\d+\.\d+\.\d+$/.test(val)) return
+    if (chips.includes(val)) { setInputVal(''); return }
+    updateChips([...chips, val])
+    setInputVal('')
+  }
+
+  return (
+    <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
+      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+        Criteriu WCAG
+      </label>
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {chips.map((chip, i) => (
+          <span
+            key={chip}
+            className="inline-flex items-center gap-1 bg-blue-100 border border-blue-300 rounded px-2 py-0.5 text-xs font-mono font-semibold text-blue-800"
+          >
+            {chip}
+            {chips.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeChip(i)}
+                className="text-blue-500 hover:text-red-500 leading-none"
+                aria-label={`Elimină ${chip}`}
+              >
+                ×
+              </button>
+            )}
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-1.5">
+        <input
+          value={inputVal}
+          onChange={(e) => setInputVal(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && addChip()}
+          placeholder="ex: 2.1.1"
+          className="flex-1 rounded border border-blue-300 bg-white px-2 py-1 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        <button
+          type="button"
+          onClick={addChip}
+          className="px-2.5 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-medium transition-colors"
+        >
+          + Adaugă
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-gray-400">Format: X.X.X — apasă Enter sau butonul pentru adăugare</p>
     </div>
   )
 }
@@ -140,13 +291,9 @@ export function Step3AIReview({
       <section>
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Clasificare WCAG</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <SuggestionCard
-            label="Criteriu WCAG"
+          <WCAGChipsCard
             suggestion={analysis.wcag as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('wcag', { accepted: true, rejected: false })}
             onEdit={(v) => onUpdateSuggestion('wcag', { edited: true, accepted: false, rejected: false, userValue: v })}
-            onReject={() => onUpdateSuggestion('wcag', { rejected: true, accepted: false, edited: false })}
-            hint="Format: X.X.X (ex: 1.4.3)"
           />
           <MetadataSelectCard
             label="Nivel WCAG"
@@ -188,13 +335,13 @@ export function Step3AIReview({
       <section>
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Metadata</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <MetadataSelectCard
+          <MultiToggleCard
             label="Dizabilitate afectată"
             suggestion={analysis.disability as AISuggestion<string>}
             options={airtableOptions[fieldNames.disability] ?? []}
             onEdit={(v) => onUpdateSuggestion('disability', { edited: true, accepted: false, rejected: false, userValue: v })}
           />
-          <MetadataSelectCard
+          <MultiToggleCard
             label="Echipă de interes"
             suggestion={analysis.teamOfInterest as AISuggestion<string>}
             options={airtableOptions[fieldNames.team] ?? []}

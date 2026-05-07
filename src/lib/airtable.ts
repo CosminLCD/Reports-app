@@ -78,10 +78,10 @@ export function buildAirtableRecord(
   setIfNotEmpty(record, F.WCAG_LEVEL, getEffectiveValue(analysis.wcagLevel))
 
   const disability = getEffectiveValue(analysis.disability)
-  if (disability) record[F.DISABILITY] = [disability]
+  if (disability) record[F.DISABILITY] = disability.split('/').map((s) => s.trim()).filter(Boolean)
 
   const team = getEffectiveValue(analysis.teamOfInterest)
-  if (team) record[F.TEAM] = [team]
+  if (team) record[F.TEAM] = team.split('/').map((s) => s.trim()).filter(Boolean)
 
   setIfNotEmpty(record, F.PRIORITIZATION, getEffectiveValue(analysis.prioritization))
   setIfNotEmpty(record, F.COMPLEXITY, getEffectiveValue(analysis.levelOfComplexity))
