@@ -5,11 +5,15 @@ export type CustomFieldType = 'text' | 'select' | 'number'
 
 // ─── Manual Fields (Pasul 1) ──────────────────────────────────────────────────
 
-export interface ManualFields {
-  client: string
+export interface PageEntry {
   pageName: string
   pageLink: string
   appWebsiteName: string
+}
+
+export interface ManualFields {
+  client: string
+  pages: PageEntry[]
   device: string[]
   operatingSystem: string[]
   browser: string[]
@@ -112,9 +116,9 @@ export interface ReportSubmitResponse {
 
 export interface AirtableRecord {
   Client: string
-  'Page Name': string[]
-  'Page Link': string[]
-  'App/Website Name': string[]
+  'Page Name': string
+  'Page Link': string
+  'App/Website Name': string
   Device: string[]
   'Operating System': string[]
   Browser: string[]

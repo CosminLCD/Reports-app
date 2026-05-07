@@ -8,9 +8,11 @@ const { analyzeAccessibilityIssue } = process.env.GEMINI_API_KEY
 
 const manualFieldsSchema = z.object({
   client: z.string().min(1),
-  pageName: z.string().min(1),
-  pageLink: z.string().min(1),
-  appWebsiteName: z.string().default(''),
+  pages: z.array(z.object({
+    pageName: z.string().min(1),
+    pageLink: z.string().min(1),
+    appWebsiteName: z.string().default(''),
+  })).min(1),
   device: z.array(z.string()).min(1),
   operatingSystem: z.array(z.string()).min(1),
   browser: z.array(z.string()).min(1),

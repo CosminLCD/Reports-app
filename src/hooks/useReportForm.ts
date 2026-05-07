@@ -19,16 +19,25 @@ function loadStep1Memory(): Step1Memory | null {
   try {
     const raw = localStorage.getItem(STEP1_MEMORY_KEY)
     if (!raw) return null
-    const parsed = JSON.parse(raw) as Step1Memory
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = JSON.parse(raw) as any
     if (!parsed?.manualFields || typeof parsed.manualFields.client !== 'string') return null
     const mf = parsed.manualFields
-    parsed.manualFields = {
-      ...mf,
+
+    // Migrare format vechi (pageName/pageLink/appWebsiteName → pages[])
+    let pages = Array.isArray(mf.pages) ? mf.pages : []
+    if (pages.length === 0 && typeof mf.pageName === 'string' && mf.pageName) {
+      pages = [{ pageName: mf.pageName, pageLink: mf.pageLink ?? '', appWebsiteName: mf.appWebsiteName ?? '' }]
+    }
+
+    const manualFields: ManualFields = {
+      client: mf.client,
+      pages,
       device: Array.isArray(mf.device) ? mf.device : [],
       operatingSystem: Array.isArray(mf.operatingSystem) ? mf.operatingSystem : [],
       browser: Array.isArray(mf.browser) ? mf.browser : [],
     }
-    return parsed
+    return { manualFields, customValues: parsed.customValues ?? {}, savedAt: parsed.savedAt ?? '' }
   } catch {
     return null
   }
@@ -62,9 +71,7 @@ function autoAcceptAll(analysis: AIAnalysisResult): AIAnalysisResult {
 
 const initialManualFields: ManualFields = {
   client: '',
-  pageName: '',
-  pageLink: '',
-  appWebsiteName: '',
+  pages: [],
   device: [],
   operatingSystem: [],
   browser: [],

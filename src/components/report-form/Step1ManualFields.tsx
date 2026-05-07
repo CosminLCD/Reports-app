@@ -85,22 +85,33 @@ export function Step1ManualFields({ fields, onChange, customFields, customValues
     [pages, fields.client]
   )
 
+  const selectedPageIds = useMemo(
+    () => new Set(fields.pages.map((p) => p.pageName + '|' + p.pageLink)),
+    [fields.pages]
+  )
+
   const handleClientChange = (client: string) => {
-    onChange({ ...fields, client, pageName: '', pageLink: '', appWebsiteName: '' })
+    onChange({ ...fields, client, pages: [] })
   }
 
-  const handlePageChange = (pageId: string) => {
+  const handleAddPage = (pageId: string) => {
     const page = pages.find((p) => p.id === pageId)
     if (!page) return
-    onChange({ ...fields, pageName: page.pageName, pageLink: page.pageLink, appWebsiteName: page.appWebsiteName })
+    const key = page.pageName + '|' + page.pageLink
+    if (selectedPageIds.has(key)) return
+    onChange({
+      ...fields,
+      pages: [...fields.pages, { pageName: page.pageName, pageLink: page.pageLink, appWebsiteName: page.appWebsiteName }],
+    })
   }
 
-  const selectedPage = pages.find((p) => p.pageName === fields.pageName && p.client === fields.client)
+  const handleRemovePage = (index: number) => {
+    onChange({ ...fields, pages: fields.pages.filter((_, i) => i !== index) })
+  }
 
   const isValid =
     fields.client.trim() &&
-    fields.pageName.trim() &&
-    fields.pageLink.trim() &&
+    fields.pages.length > 0 &&
     fields.device.length > 0 &&
     fields.operatingSystem.length > 0 &&
     fields.browser.length > 0
@@ -127,54 +138,64 @@ export function Step1ManualFields({ fields, onChange, customFields, customValues
         </div>
       )}
 
-      {/* Client + Pagina auditată */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Client" required>
-          <select
-            value={fields.client}
-            onChange={(e) => handleClientChange(e.target.value)}
-            className={inputCls}
-            disabled={loading}
-          >
-            <option value="">{loading ? 'Se încarcă...' : 'Selectează client...'}</option>
-            {clients.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </Field>
+      {/* Client */}
+      <Field label="Client" required>
+        <select
+          value={fields.client}
+          onChange={(e) => handleClientChange(e.target.value)}
+          className={inputCls}
+          disabled={loading}
+        >
+          <option value="">{loading ? 'Se încarcă...' : 'Selectează client...'}</option>
+          {clients.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </Field>
 
-        <Field label="Pagina auditată" required>
-          <select
-            value={selectedPage?.id ?? ''}
-            onChange={(e) => handlePageChange(e.target.value)}
-            className={inputCls}
-            disabled={loading || !fields.client}
-          >
-            <option value="">{!fields.client ? 'Alege mai întâi clientul' : 'Selectează pagina...'}</option>
-            {filteredPages.map((p) => <option key={p.id} value={p.id}>{p.pageName}</option>)}
-          </select>
-        </Field>
-      </div>
+      {/* Pagini auditate — multi-select */}
+      <Field label="Pagini auditate" required>
+        <select
+          value=""
+          onChange={(e) => { handleAddPage(e.target.value); e.target.value = '' }}
+          className={inputCls}
+          disabled={loading || !fields.client}
+        >
+          <option value="">{!fields.client ? 'Alege mai întâi clientul' : 'Adaugă pagină...'}</option>
+          {filteredPages
+            .filter((p) => !selectedPageIds.has(p.pageName + '|' + p.pageLink))
+            .map((p) => <option key={p.id} value={p.id}>{p.pageName}</option>)}
+        </select>
 
-      {/* App/Website Name + Link pagină — auto-completate */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="App / Website Name">
-          <input
-            type="text"
-            value={fields.appWebsiteName}
-            onChange={(e) => update('appWebsiteName', e.target.value)}
-            className={inputCls}
-            placeholder="auto-completat"
-          />
-        </Field>
-        <Field label="Link pagină" required>
-          <input
-            type="url"
-            value={fields.pageLink}
-            onChange={(e) => update('pageLink', e.target.value)}
-            className={inputCls}
-            placeholder="https://..."
-          />
-        </Field>
-      </div>
+        {fields.pages.length > 0 && (
+          <ul className="mt-2 space-y-1.5">
+            {fields.pages.map((page, i) => (
+              <li
+                key={i}
+                className="flex items-start justify-between gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{page.pageName}</p>
+                  <a
+                    href={page.pageLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-500 hover:underline truncate block max-w-xs"
+                  >
+                    {page.pageLink}
+                  </a>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemovePage(i)}
+                  className="shrink-0 text-gray-400 hover:text-red-500 transition-colors mt-0.5"
+                  aria-label={`Elimină ${page.pageName}`}
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Field>
 
       {/* Device */}
       <Field label="Dispozitiv" required>

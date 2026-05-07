@@ -33,11 +33,15 @@ export function buildAccessibilityAnalysisPrompt(
     ? `\n## Cod sursă relevant (furnizat de auditor)\n\`\`\`\n${codSursa}\n\`\`\`\nFolosește acest cod pentru a genera o soluție tehnică precisă cu fix-ul exact aplicat pe structura existentă.\n`
     : ''
 
+  const pagesLine = manualFields.pages
+    .map((p) => `${p.pageName} (${p.pageLink})`)
+    .join(', ')
+
   return `Ești un expert în accesibilitate web cu cunoaștere profundă a standardelor WCAG 2.1 și 2.2. Analizezi o problemă de accesibilitate identificată în timpul unui audit profesional.
 
 ## Context audit
 - Client: ${manualFields.client}
-- Pagina: ${manualFields.pageName} (${manualFields.pageLink})
+- Pagini: ${pagesLine}
 - Dispozitiv: ${manualFields.device.join(', ')}
 - Sistem de operare: ${manualFields.operatingSystem.join(', ')}
 - Browser: ${manualFields.browser.join(', ')}

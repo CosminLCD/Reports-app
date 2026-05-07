@@ -62,9 +62,9 @@ export function buildAirtableRecord(
 ): AirtableFields {
   const record: AirtableFields = {
     [F.CLIENT]:       manualFields.client,
-    [F.PAGE_NAME]:    manualFields.pageName,
-    [F.PAGE_LINK]:    manualFields.pageLink,
-    [F.APP_NAME]:     manualFields.appWebsiteName,
+    [F.PAGE_NAME]:    manualFields.pages.map((p) => p.pageName).join('\n'),
+    [F.PAGE_LINK]:    manualFields.pages.map((p) => p.pageLink).join('\n'),
+    [F.APP_NAME]:     [...new Set(manualFields.pages.map((p) => p.appWebsiteName).filter(Boolean))].join('\n'),
     [F.DEVICE]:       manualFields.device,
     [F.OS]:           manualFields.operatingSystem,
     [F.BROWSER]:      manualFields.browser,
