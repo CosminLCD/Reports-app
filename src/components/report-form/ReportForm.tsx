@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StepIndicator } from './StepIndicator'
 import { Step1ManualFields } from './Step1ManualFields'
@@ -13,41 +12,52 @@ import type { AIAnalysisResult, AISuggestion } from '@/types'
 
 export function ReportForm() {
   const router = useRouter()
-  const [customManualValues, setCustomManualValues] = useState<Record<string, string>>({})
   const { options: airtableOptions, fieldNames } = useAirtableOptions()
 
   const {
     step,
     manualFields,
-    imageData,
+    images,
+    aiImages,
     descriereScurta,
     codSursa,
     aiAnalysis,
     isAnalyzing,
     isSubmitting,
+    isManualMode,
     error,
     customFields,
+    customManualValues,
+    setCustomManualValues,
+    preFilled,
+    dismissPreFilled,
     goToStep,
     setManualFields,
-    setImageData,
+    setImages,
+    setAiImages,
     setDescriereScurta,
     setCodSursa,
     triggerAnalysis,
+    enableManualMode,
     updateSuggestion,
     updateCustomSuggestion,
     submitReport,
   } = useReportForm()
 
-  const handleSubmit = async () => {
-    const recordId = await submitReport()
+  const handleSubmit = async (): Promise<boolean> => {
+    const { recordId, imageError } = await submitReport()
     if (recordId) {
-      router.push(`/report/success?id=${recordId}`)
+      const params = new URLSearchParams({ id: recordId })
+      if (imageError) params.set('imageError', imageError)
+      router.push(`/report/success?${params}`)
+      return true
     }
+    return false
   }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sm:p-8">
-      <StepIndicator currentStep={step} />
+      <StepIndicator currentStep={step} onGoToStep={goToStep} />
 
       {step === 1 && (
         <Step1ManualFields
@@ -59,6 +69,8 @@ export function ReportForm() {
           onNext={() => goToStep(2)}
           airtableOptions={airtableOptions}
           fieldNames={fieldNames}
+          preFilled={preFilled}
+          onDismissPreFilled={dismissPreFilled}
         />
       )}
 
@@ -66,16 +78,26 @@ export function ReportForm() {
 
       {step === 2 && !isAnalyzing && (
         <Step2ImageAndDesc
-          imageData={imageData}
+          images={images}
+          aiImages={aiImages}
           descriereScurta={descriereScurta}
           codSursa={codSursa}
-          onImageChange={setImageData}
+          onImagesChange={setImages}
+          onAiImagesChange={setAiImages}
           onDescriereChange={setDescriereScurta}
           onCodSursaChange={setCodSursa}
-          onAnalyze={triggerAnalysis}
+          onAnalyze={() => triggerAnalysis({
+            teamOfInterest: airtableOptions[fieldNames.team],
+            disability: airtableOptions[fieldNames.disability],
+            prioritization: airtableOptions[fieldNames.prioritization],
+            levelOfComplexity: airtableOptions[fieldNames.complexity],
+          })}
+          onManualMode={enableManualMode}
           onBack={() => goToStep(1)}
           isAnalyzing={isAnalyzing}
           error={error}
+          hasExistingAnalysis={!!aiAnalysis}
+          onContinueToStep3={() => goToStep(3)}
         />
       )}
 
@@ -92,6 +114,7 @@ export function ReportForm() {
           onSubmit={handleSubmit}
           onBack={() => goToStep(2)}
           isSubmitting={isSubmitting}
+          isManualMode={isManualMode}
           error={error}
         />
       )}

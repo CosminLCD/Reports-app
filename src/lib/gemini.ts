@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { buildAccessibilityAnalysisPrompt } from './prompts'
+import { buildAccessibilityAnalysisPrompt, type PromptSelectOptions } from './prompts'
 import { makeSuggestion, type AIAnalysisResult, type ManualFields, type CustomField } from '@/types'
 
 const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
@@ -44,15 +44,16 @@ export async function analyzeAccessibilityIssue(
   manualFields: ManualFields,
   descriereScurta: string,
   codSursa?: string,
-  imageBase64?: string,
-  imageMimeType?: string,
-  customFieldDefs?: CustomField[]
+  images?: Array<{ base64: string; mimeType: string }>,
+  customFieldDefs?: CustomField[],
+  selectOptions?: PromptSelectOptions
 ): Promise<AIAnalysisResult> {
   const textPrompt = buildAccessibilityAnalysisPrompt(
     manualFields,
     descriereScurta,
     codSursa,
-    customFieldDefs
+    customFieldDefs,
+    selectOptions
   )
 
   const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' })
@@ -60,13 +61,10 @@ export async function analyzeAccessibilityIssue(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const parts: any[] = []
 
-  if (imageBase64 && imageMimeType) {
-    parts.push({
-      inlineData: {
-        data: imageBase64,
-        mimeType: imageMimeType,
-      },
-    })
+  if (images && images.length > 0) {
+    for (const img of images) {
+      parts.push({ inlineData: { data: img.base64, mimeType: img.mimeType } })
+    }
   }
 
   parts.push({ text: textPrompt })

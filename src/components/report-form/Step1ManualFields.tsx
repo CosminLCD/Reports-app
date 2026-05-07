@@ -15,6 +15,8 @@ interface Step1Props {
   onNext: () => void
   airtableOptions: FieldOptions
   fieldNames: FieldNames
+  preFilled: boolean
+  onDismissPreFilled: () => void
 }
 
 const inputCls = 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent'
@@ -67,7 +69,7 @@ function MultiCheckbox({ value, onChange, options }: {
   )
 }
 
-export function Step1ManualFields({ fields, onChange, customFields, customValues, onCustomChange, onNext, airtableOptions, fieldNames }: Step1Props) {
+export function Step1ManualFields({ fields, onChange, customFields, customValues, onCustomChange, onNext, airtableOptions, fieldNames, preFilled, onDismissPreFilled }: Step1Props) {
   const { pages, loading, error: sourceError } = useSourcePages()
 
   const update = (key: keyof ManualFields, value: string | string[]) =>
@@ -105,6 +107,20 @@ export function Step1ManualFields({ fields, onChange, customFields, customValues
 
   return (
     <div className="space-y-5">
+      {preFilled && (
+        <div className="flex items-center justify-between gap-3 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-700">
+          <span>Câmpurile au fost completate automat din raportul anterior. Le poți modifica oricând.</span>
+          <button
+            type="button"
+            onClick={onDismissPreFilled}
+            className="shrink-0 text-blue-500 hover:text-blue-700 font-medium transition-colors"
+            aria-label="Închide notificarea"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {sourceError && (
         <div className="rounded-md bg-red-50 border border-red-200 p-3 text-xs text-red-600 font-mono break-all">
           {sourceError}

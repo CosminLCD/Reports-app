@@ -1,12 +1,53 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { SuggestionCard } from '@/components/ai-suggestions/SuggestionCard'
 import { WCAGBadge } from '@/components/shared/WCAGBadge'
 import { PriorityBadge, ComplexityBadge } from '@/components/shared/PriorityBadge'
 import type { AIAnalysisResult, AISuggestion, CustomField } from '@/types'
 import { getEffectiveValue } from '@/types'
 import type { FieldOptions, FieldNames } from '@/app/api/airtable-meta/route'
+
+function MetadataSelectCard({
+  label,
+  suggestion,
+  options,
+  onEdit,
+}: {
+  label: string
+  suggestion: AISuggestion<string>
+  options: string[]
+  onEdit: (v: string) => void
+}) {
+  const current = getEffectiveValue(suggestion) ?? ''
+  const onEditRef = useRef(onEdit)
+  onEditRef.current = onEdit
+
+  // When options load and no value is set yet, auto-select first option
+  // so visual state matches what gets sent to Airtable
+  useEffect(() => {
+    if (!current && options.length > 0) {
+      onEditRef.current(options[0])
+    }
+  }, [current, options.length])
+
+  return (
+    <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-3">
+      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
+        {label}
+      </label>
+      <select
+        value={current || options[0] || ''}
+        onChange={(e) => onEdit(e.target.value)}
+        className="w-full rounded border border-blue-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
+        {options.map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    </div>
+  )
+}
 
 interface Step3Props {
   analysis: AIAnalysisResult
@@ -15,9 +56,10 @@ interface Step3Props {
   fieldNames: FieldNames
   onUpdateSuggestion: (field: keyof AIAnalysisResult, update: Partial<AISuggestion>) => void
   onUpdateCustomSuggestion: (fieldId: string, update: Partial<AISuggestion>) => void
-  onSubmit: () => Promise<void>
+  onSubmit: () => Promise<boolean>
   onBack: () => void
   isSubmitting: boolean
+  isManualMode?: boolean
   error: string | null
 }
 
@@ -31,13 +73,14 @@ export function Step3AIReview({
   onSubmit,
   onBack,
   isSubmitting,
+  isManualMode = false,
   error,
 }: Step3Props) {
   const [submitted, setSubmitted] = useState(false)
 
   const handleSubmit = async () => {
-    await onSubmit()
-    setSubmitted(true)
+    const success = await onSubmit()
+    if (success) setSubmitted(true)
   }
 
   const wcagValue = getEffectiveValue(analysis.wcag) ?? ''
@@ -46,6 +89,13 @@ export function Step3AIReview({
 
   return (
     <div className="space-y-5">
+      {/* Banner mod manual */}
+      {isManualMode && (
+        <div className="rounded-md bg-yellow-50 border border-yellow-300 p-3 text-sm text-yellow-800">
+          Mod manual — câmpurile nu au fost generate de AI. Completați-le și salvați.
+        </div>
+      )}
+
       {/* Sumar */}
       <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 flex flex-wrap gap-3 items-center">
         <span className="text-sm font-medium text-gray-600">Sumar:</span>
@@ -53,7 +103,7 @@ export function Step3AIReview({
         {priorityValue && <PriorityBadge priority={priorityValue} />}
         {complexityValue && <ComplexityBadge complexity={complexityValue} />}
         <span className="text-sm text-gray-500 ml-auto">
-          Acceptă, editează sau respinge fiecare sugestie
+          {isManualMode ? 'Completați câmpurile manual' : 'Valorile sunt salvate automat — apasă Editează dacă vrei să modifici'}
         </span>
       </div>
 
@@ -92,13 +142,11 @@ export function Step3AIReview({
             onReject={() => onUpdateSuggestion('wcag', { rejected: true, accepted: false, edited: false })}
             hint="Format: X.X.X (ex: 1.4.3)"
           />
-          <SuggestionCard
+          <MetadataSelectCard
             label="Nivel WCAG"
             suggestion={analysis.wcagLevel as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('wcagLevel', { accepted: true, rejected: false })}
+            options={airtableOptions[fieldNames.wcagLevel] ?? []}
             onEdit={(v) => onUpdateSuggestion('wcagLevel', { edited: true, accepted: false, rejected: false, userValue: v as 'A' | 'AA' | 'AAA' })}
-            onReject={() => onUpdateSuggestion('wcagLevel', { rejected: true, accepted: false, edited: false })}
-            selectOptions={airtableOptions[fieldNames.wcagLevel] ?? []}
           />
         </div>
       </section>
@@ -132,37 +180,29 @@ export function Step3AIReview({
       <section>
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Metadata</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <SuggestionCard
+          <MetadataSelectCard
             label="Dizabilitate afectată"
             suggestion={analysis.disability as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('disability', { accepted: true, rejected: false })}
+            options={airtableOptions[fieldNames.disability] ?? []}
             onEdit={(v) => onUpdateSuggestion('disability', { edited: true, accepted: false, rejected: false, userValue: v })}
-            onReject={() => onUpdateSuggestion('disability', { rejected: true, accepted: false, edited: false })}
-            selectOptions={airtableOptions[fieldNames.disability] ?? []}
           />
-          <SuggestionCard
+          <MetadataSelectCard
             label="Echipă de interes"
             suggestion={analysis.teamOfInterest as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('teamOfInterest', { accepted: true, rejected: false })}
+            options={airtableOptions[fieldNames.team] ?? []}
             onEdit={(v) => onUpdateSuggestion('teamOfInterest', { edited: true, accepted: false, rejected: false, userValue: v })}
-            onReject={() => onUpdateSuggestion('teamOfInterest', { rejected: true, accepted: false, edited: false })}
-            selectOptions={airtableOptions[fieldNames.team] ?? []}
           />
-          <SuggestionCard
+          <MetadataSelectCard
             label="Prioritizare"
             suggestion={analysis.prioritization as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('prioritization', { accepted: true, rejected: false })}
+            options={airtableOptions[fieldNames.prioritization] ?? []}
             onEdit={(v) => onUpdateSuggestion('prioritization', { edited: true, accepted: false, rejected: false, userValue: v })}
-            onReject={() => onUpdateSuggestion('prioritization', { rejected: true, accepted: false, edited: false })}
-            selectOptions={airtableOptions[fieldNames.prioritization] ?? []}
           />
-          <SuggestionCard
+          <MetadataSelectCard
             label="Nivel de complexitate"
             suggestion={analysis.levelOfComplexity as AISuggestion<string>}
-            onAccept={() => onUpdateSuggestion('levelOfComplexity', { accepted: true, rejected: false })}
+            options={airtableOptions[fieldNames.complexity] ?? []}
             onEdit={(v) => onUpdateSuggestion('levelOfComplexity', { edited: true, accepted: false, rejected: false, userValue: v })}
-            onReject={() => onUpdateSuggestion('levelOfComplexity', { rejected: true, accepted: false, edited: false })}
-            selectOptions={airtableOptions[fieldNames.complexity] ?? []}
           />
         </div>
       </section>

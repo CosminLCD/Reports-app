@@ -16,13 +16,18 @@ const manualFieldsSchema = z.object({
   browser: z.array(z.string()).min(1),
 })
 
+const imageSchema = z.object({
+  base64: z.string(),
+  mimeType: z.string(),
+})
+
 const requestSchema = z.object({
   manualFields: manualFieldsSchema,
   descriereScurta: z.string().min(5),
   codSursa: z.string().optional(),
-  imageBase64: z.string().optional(),
-  imageMimeType: z.string().optional(),
+  images: z.array(imageSchema).optional(),
   customFields: z.array(z.any()).optional(),
+  selectOptions: z.record(z.string(), z.array(z.string())).optional(),
 })
 
 export async function POST(request: Request): Promise<NextResponse<AnalyzeResponse>> {
@@ -37,22 +42,27 @@ export async function POST(request: Request): Promise<NextResponse<AnalyzeRespon
       )
     }
 
-    const { manualFields, descriereScurta, codSursa, imageBase64, imageMimeType, customFields } = parsed.data
+    const { manualFields, descriereScurta, codSursa, images, customFields, selectOptions } = parsed.data
 
-    if (imageBase64 && imageBase64.length > 7_000_000) {
-      return NextResponse.json(
-        { success: false, error: 'Imaginea depășește limita de 5MB' },
-        { status: 400 }
-      )
+    // Verifică dimensiunea totală a imaginilor (max 5MB fiecare)
+    if (images) {
+      for (const img of images) {
+        if (img.base64.length > 7_000_000) {
+          return NextResponse.json(
+            { success: false, error: 'O imagine depășește limita de 5MB' },
+            { status: 400 }
+          )
+        }
+      }
     }
 
     const analysis = await analyzeAccessibilityIssue(
       manualFields,
       descriereScurta,
       codSursa,
-      imageBase64,
-      imageMimeType,
-      customFields
+      images,
+      customFields,
+      selectOptions
     )
 
     return NextResponse.json({ success: true, analysis })

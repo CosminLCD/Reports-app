@@ -1,10 +1,18 @@
 import type { ManualFields, CustomField } from '@/types'
 
+export interface PromptSelectOptions {
+  disability?: string[]
+  teamOfInterest?: string[]
+  prioritization?: string[]
+  levelOfComplexity?: string[]
+}
+
 export function buildAccessibilityAnalysisPrompt(
   manualFields: ManualFields,
   descriereScurta: string,
   codSursa?: string,
-  customFields?: CustomField[]
+  customFields?: CustomField[],
+  selectOptions?: PromptSelectOptions
 ): string {
   const customFieldsSchema = customFields
     ?.filter((f) => f.aiGenerated)
@@ -50,10 +58,10 @@ Schema JSON exactă cerută:
   "technicalSolution": "string - codul de fix recomandat, complet și funcțional, cu comentarii explicative",
   "wcag": "string - criteriul WCAG exact în format X.X.X (ex: 1.4.3, 2.1.1)",
   "wcagLevel": "string - nivelul de conformitate WCAG, una din: A | AA | AAA",
-  "disability": "string - UN SINGUR tip de dizabilitate afectat (cea mai relevantă), una din: Persoana Slab Vazatoare | Daltonism | Motor | Cognitiv | Surditate | Fotosensibilitate",
-  "teamOfInterest": "string - una din: Design | Dev | Content",
-  "prioritization": "string - una din: Gold | Silver | Bronze",
-  "levelOfComplexity": "string - una din: Mare | Medie | Mica"${customSchemaBlock}
+  "disability": "string - UN SINGUR tip de dizabilitate afectat (cea mai relevantă)${selectOptions?.disability?.length ? `, una din: ${selectOptions.disability.join(' | ')}` : ''}",
+  "teamOfInterest": "string${selectOptions?.teamOfInterest?.length ? ` - una din: ${selectOptions.teamOfInterest.join(' | ')}` : ' - echipa responsabilă'}",
+  "prioritization": "string${selectOptions?.prioritization?.length ? ` - una din: ${selectOptions.prioritization.join(' | ')}` : ' - prioritatea problemei'}",
+  "levelOfComplexity": "string${selectOptions?.levelOfComplexity?.length ? ` - una din: ${selectOptions.levelOfComplexity.join(' | ')}` : ' - complexitatea remedierii'}"${customSchemaBlock}
 }
 
 Reguli obligatorii:

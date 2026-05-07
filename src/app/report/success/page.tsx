@@ -1,8 +1,8 @@
 import Link from 'next/link'
-import { CheckCircle, ExternalLink, Plus } from 'lucide-react'
+import { CheckCircle, ExternalLink, Plus, AlertTriangle } from 'lucide-react'
 
 interface Props {
-  searchParams: Promise<{ id?: string }>
+  searchParams: Promise<{ id?: string; imageError?: string }>
 }
 
 export const metadata = {
@@ -12,6 +12,7 @@ export const metadata = {
 export default async function SuccessPage({ searchParams }: Props) {
   const params = await searchParams
   const recordId = params.id
+  const imageError = params.imageError
 
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -24,7 +25,13 @@ export default async function SuccessPage({ searchParams }: Props) {
         Datele au fost salvate în Airtable și sunt disponibile pentru prezentarea clientului.
       </p>
       {recordId && (
-        <p className="text-xs text-gray-400 font-mono mb-6">ID înregistrare: {recordId}</p>
+        <p className="text-xs text-gray-400 font-mono mb-2">ID înregistrare: {recordId}</p>
+      )}
+      {imageError && (
+        <div className="flex items-start gap-2 mt-2 mb-4 max-w-md rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <span>{imageError}</span>
+        </div>
       )}
 
       <div className="flex flex-col sm:flex-row gap-3 mt-4">

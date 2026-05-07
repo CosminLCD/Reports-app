@@ -14,6 +14,7 @@ interface SuggestionCardProps {
   multiline?: boolean
   selectOptions?: string[]
   hint?: string
+  initialEditMode?: boolean
 }
 
 type State = 'pending' | 'accepted' | 'editing' | 'edited' | 'rejected'
@@ -50,9 +51,10 @@ export function SuggestionCard({
   multiline = false,
   selectOptions,
   hint,
+  initialEditMode = false,
 }: SuggestionCardProps) {
   const state = getState(suggestion)
-  const [isEditing, setIsEditing] = useState(false)
+  const [isEditing, setIsEditing] = useState(initialEditMode)
   const [editValue, setEditValue] = useState(suggestion.userValue ?? suggestion.value)
   const [expanded, setExpanded] = useState(false)
 
@@ -87,13 +89,18 @@ export function SuggestionCard({
       <div className={cn('rounded-lg border-2 p-3 transition-colors', 'border-blue-300 bg-blue-50')}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{label}</span>
-          <Pencil size={14} className="text-blue-500" />
+          <span className="text-xs text-blue-500 italic">se salvează automat</span>
         </div>
 
         {selectOptions ? (
           <select
             value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
+            onChange={(e) => {
+              setEditValue(e.target.value)
+              onEdit(e.target.value)
+              setIsEditing(false)
+            }}
+            autoFocus
             className="w-full rounded border border-blue-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
             {selectOptions.map((opt) => (
@@ -104,7 +111,9 @@ export function SuggestionCard({
           <textarea
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
+            onBlur={handleSaveEdit}
             rows={4}
+            autoFocus
             className="w-full rounded border border-blue-300 bg-white px-2 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"
           />
         ) : (
@@ -112,24 +121,14 @@ export function SuggestionCard({
             type="text"
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
+            onBlur={handleSaveEdit}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit() }}
+            autoFocus
             className="w-full rounded border border-blue-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         )}
 
-        <div className="flex gap-2 mt-2">
-          <button
-            onClick={handleSaveEdit}
-            className="flex items-center gap-1 px-3 py-1 rounded text-xs font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-          >
-            <Check size={12} /> Salvează
-          </button>
-          <button
-            onClick={() => setIsEditing(false)}
-            className="px-3 py-1 rounded text-xs font-medium bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
-          >
-            Anulează
-          </button>
-        </div>
+        {hint && <p className="mt-1.5 text-xs text-gray-500">{hint}</p>}
       </div>
     )
   }
@@ -142,24 +141,15 @@ export function SuggestionCard({
           <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{label}</span>
         </div>
 
-        {/* Butoane acțiune — afișate doar pentru pending/accepted/edited */}
-        {state !== 'rejected' && (
+        {/* Butoane acțiune */}
+        {state !== 'rejected' && state === 'pending' && (
           <div className="flex items-center gap-1">
-            {state === 'pending' && (
-              <button
-                onClick={handleAccept}
-                className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
-                title="Acceptă sugestia"
-              >
-                <Check size={11} /> Accept
-              </button>
-            )}
             <button
-              onClick={handleStartEdit}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
-              title="Editează sugestia"
+              onClick={handleAccept}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500 text-white hover:bg-green-600 transition-colors"
+              title="Acceptă sugestia"
             >
-              <Pencil size={11} /> Editează
+              <Check size={11} /> Accept
             </button>
             <button
               onClick={handleReject}
@@ -184,13 +174,21 @@ export function SuggestionCard({
       {state === 'rejected' ? (
         <p className="text-sm text-red-600 italic">Câmp respins — va fi trimis gol în Airtable</p>
       ) : (
-        <div>
-          <p className={cn('text-sm text-gray-800 whitespace-pre-wrap', !expanded && isLong && 'line-clamp-3')}>
-            {displayValue}
+        <div
+          onClick={handleStartEdit}
+          className="cursor-text rounded -mx-1 px-1 py-0.5 hover:bg-white/50 transition-colors min-h-[2rem]"
+          title="Click pentru a edita"
+        >
+          <p className={cn(
+            'text-sm whitespace-pre-wrap',
+            displayValue ? 'text-gray-800' : 'text-gray-400 italic',
+            !expanded && isLong && 'line-clamp-3'
+          )}>
+            {displayValue || 'Click pentru a completa...'}
           </p>
           {isLong && (
             <button
-              onClick={() => setExpanded(!expanded)}
+              onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }}
               className="flex items-center gap-1 mt-1 text-xs text-gray-500 hover:text-gray-700"
             >
               {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}

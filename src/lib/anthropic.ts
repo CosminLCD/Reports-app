@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { buildAccessibilityAnalysisPrompt } from './prompts'
+import { buildAccessibilityAnalysisPrompt, type PromptSelectOptions } from './prompts'
 import { makeSuggestion, type AIAnalysisResult, type ManualFields, type CustomField } from '@/types'
 
 const client = new Anthropic({
@@ -42,42 +42,45 @@ function transformToAISuggestions(raw: RawAnalysis): AIAnalysisResult {
   }
 }
 
+type ImageBlock = {
+  type: 'image'
+  source: {
+    type: 'base64'
+    media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+    data: string
+  }
+}
+type TextBlock = { type: 'text'; text: string }
+
 export async function analyzeAccessibilityIssue(
   manualFields: ManualFields,
   descriereScurta: string,
   codSursa?: string,
-  imageBase64?: string,
-  imageMimeType?: string,
-  customFieldDefs?: CustomField[]
+  images?: Array<{ base64: string; mimeType: string }>,
+  customFieldDefs?: CustomField[],
+  selectOptions?: PromptSelectOptions
 ): Promise<AIAnalysisResult> {
   const textPrompt = buildAccessibilityAnalysisPrompt(
     manualFields,
     descriereScurta,
     codSursa,
-    customFieldDefs
+    customFieldDefs,
+    selectOptions
   )
-
-  type ImageBlock = {
-    type: 'image'
-    source: {
-      type: 'base64'
-      media_type: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
-      data: string
-    }
-  }
-  type TextBlock = { type: 'text'; text: string }
 
   const contentBlocks: (ImageBlock | TextBlock)[] = []
 
-  if (imageBase64 && imageMimeType) {
-    contentBlocks.push({
-      type: 'image',
-      source: {
-        type: 'base64',
-        media_type: imageMimeType as ImageBlock['source']['media_type'],
-        data: imageBase64,
-      },
-    })
+  if (images && images.length > 0) {
+    for (const img of images) {
+      contentBlocks.push({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: img.mimeType as ImageBlock['source']['media_type'],
+          data: img.base64,
+        },
+      })
+    }
   }
 
   contentBlocks.push({ type: 'text', text: textPrompt })
@@ -85,18 +88,12 @@ export async function analyzeAccessibilityIssue(
   const message = await client.messages.create({
     model: 'claude-opus-4-5',
     max_tokens: 2048,
-    messages: [
-      {
-        role: 'user',
-        content: contentBlocks,
-      },
-    ],
+    messages: [{ role: 'user', content: contentBlocks }],
   })
 
   const responseText =
     message.content[0].type === 'text' ? message.content[0].text : ''
 
-  // Extrage JSON din răspuns (în caz că există text extra)
   const jsonMatch = responseText.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
     throw new Error('Răspunsul AI nu conține JSON valid')

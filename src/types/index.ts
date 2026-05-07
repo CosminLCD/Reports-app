@@ -15,6 +15,14 @@ export interface ManualFields {
   browser: string[]
 }
 
+// ─── Step 1 Memory ────────────────────────────────────────────────────────────
+
+export interface Step1Memory {
+  manualFields: ManualFields
+  customValues: Record<string, string>
+  savedAt: string
+}
+
 // ─── Image Data ───────────────────────────────────────────────────────────────
 
 export interface ImageData {
@@ -76,8 +84,7 @@ export interface AnalyzeRequest {
   manualFields: ManualFields
   descriereScurta: string
   codSursa?: string
-  imageBase64?: string
-  imageMimeType?: string
+  images?: Array<{ base64: string; mimeType: string }>
   customFields?: CustomField[]
 }
 
@@ -91,12 +98,14 @@ export interface ReportSubmitRequest {
   manualFields: ManualFields
   analysis: AIAnalysisResult
   customFields?: CustomField[]
+  images?: Array<{ base64: string; mimeType: string; fileName: string }>
 }
 
 export interface ReportSubmitResponse {
   success: boolean
   recordId?: string
   error?: string
+  imageError?: string
 }
 
 // ─── Airtable Record ──────────────────────────────────────────────────────────
