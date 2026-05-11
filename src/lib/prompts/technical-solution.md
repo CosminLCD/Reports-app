@@ -12,6 +12,7 @@ Codul de fix exact, gata de implementat, cu comentarii explicative pentru echipa
 6. **Tehnici corecte:** Folosește ARIA corect (nu abuziv), HTML5 semantic, atribute standard — evită hacks sau soluții nestandard
 7. **Blocuri separate:** Dacă fix-ul implică mai multe limbaje (HTML + CSS sau HTML + JS), separă-le în blocuri distincte cu comentariu de antet
 8. **Nu include:** Text introductiv, text de încheiere, explicații în proze în afara comentariilor din cod, descrieri generice fără cod
+9. **Limită strictă:** Răspunsul final trebuie să aibă maxim 250 de cuvinte (inclusiv comentariile din cod) — prioritizează codul esențial și concizia
 
 ## Structura corectă a răspunsului
 
