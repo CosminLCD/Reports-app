@@ -78,7 +78,12 @@ function MultiToggleCard({
 
   const parseSelected = (s: AISuggestion<string>, opts: string[]) => {
     const val = getEffectiveValue(s) ?? ''
-    const parsed = val.split('/').map((x) => x.trim()).filter((x) => opts.includes(x))
+    const parsed = val
+      .split('/')
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .map((x) => opts.find((o) => o.trim() === x))
+      .filter((x): x is string => Boolean(x))
     return parsed.length > 0 ? parsed : opts.length > 0 ? [opts[0]] : []
   }
 
