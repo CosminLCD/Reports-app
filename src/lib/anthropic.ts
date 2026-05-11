@@ -4,6 +4,8 @@ import { makeSuggestion, type AIAnalysisResult, type ManualFields, type CustomFi
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  timeout: 10 * 60 * 1000,
+  maxRetries: 2,
 })
 
 interface RawAnalysis {
@@ -13,6 +15,7 @@ interface RawAnalysis {
   technicalSolution: string
   wcag: string
   wcagLevel: string
+  wcagCategory: string
   disability: string
   teamOfInterest: string
   prioritization: string
@@ -34,6 +37,7 @@ function transformToAISuggestions(raw: RawAnalysis): AIAnalysisResult {
     technicalSolution: makeSuggestion(raw.technicalSolution ?? ''),
     wcag: makeSuggestion(raw.wcag ?? ''),
     wcagLevel: makeSuggestion((raw.wcagLevel ?? '') as AIAnalysisResult['wcagLevel']['value']),
+    wcagCategory: makeSuggestion(raw.wcagCategory ?? ''),
     disability: makeSuggestion(raw.disability ?? ''),
     teamOfInterest: makeSuggestion(raw.teamOfInterest ?? ''),
     prioritization: makeSuggestion(raw.prioritization ?? ''),
@@ -85,22 +89,33 @@ export async function analyzeAccessibilityIssue(
 
   contentBlocks.push({ type: 'text', text: textPrompt })
 
+  console.time('anthropic:analyze')
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 2048,
+    max_tokens: 8192,
     messages: [{ role: 'user', content: contentBlocks }],
   })
+  console.timeEnd('anthropic:analyze')
 
   const responseText =
     message.content[0].type === 'text' ? message.content[0].text : ''
 
   const jsonMatch = responseText.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
+    console.error('[anthropic:analyze] Răspuns fără JSON. stop_reason:', message.stop_reason, '| usage:', message.usage, '| text:', responseText)
+    if (message.stop_reason === 'max_tokens') {
+      throw new Error('Răspunsul AI a fost trunchiat (max_tokens). Crește limita sau simplifică promptul.')
+    }
     throw new Error('Răspunsul AI nu conține JSON valid')
   }
 
-  const rawAnalysis: RawAnalysis = JSON.parse(jsonMatch[0])
-  return transformToAISuggestions(rawAnalysis)
+  try {
+    const rawAnalysis: RawAnalysis = JSON.parse(jsonMatch[0])
+    return transformToAISuggestions(rawAnalysis)
+  } catch (parseError) {
+    console.error('[anthropic:analyze] JSON.parse a eșuat. stop_reason:', message.stop_reason, '| usage:', message.usage, '| text:', responseText)
+    throw parseError
+  }
 }
 
 export async function regenerateSingleField(
@@ -131,11 +146,16 @@ export async function regenerateSingleField(
 
   contentBlocks.push({ type: 'text', text: textPrompt })
 
+  console.time('anthropic:regenerate')
   const message = await client.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
+    max_tokens: 4096,
     messages: [{ role: 'user', content: contentBlocks }],
   })
+  console.timeEnd('anthropic:regenerate')
+  if (message.stop_reason === 'max_tokens') {
+    console.warn('[anthropic:regenerate] Răspuns trunchiat (max_tokens).', { usage: message.usage })
+  }
 
   return message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 }

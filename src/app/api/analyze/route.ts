@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import type { AnalyzeResponse } from '@/types'
+import { mapAIError } from '@/lib/api-errors'
+
+export const maxDuration = 300
 
 const { analyzeAccessibilityIssue } = process.env.GEMINI_API_KEY
   ? await import('@/lib/gemini')
@@ -69,11 +72,9 @@ export async function POST(request: Request): Promise<NextResponse<AnalyzeRespon
 
     return NextResponse.json({ success: true, analysis })
   } catch (error) {
-    console.error('Eroare analiză AI:', error)
     const provider = process.env.GEMINI_API_KEY ? 'Gemini' : 'Anthropic'
-    return NextResponse.json(
-      { success: false, error: `Eroare server. Verificați API key-ul ${provider}.` },
-      { status: 500 }
-    )
+    console.error(`Eroare AI (${provider}):`, error)
+    const { message, status } = mapAIError(error, provider)
+    return NextResponse.json({ success: false, error: message }, { status })
   }
 }

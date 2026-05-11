@@ -63,6 +63,7 @@ export interface AIAnalysisResult {
   technicalSolution: AISuggestion<string>
   wcag: AISuggestion<string>
   wcagLevel: AISuggestion<WCAGLevel>
+  wcagCategory: AISuggestion<string>
   disability: AISuggestion<string>
   teamOfInterest: AISuggestion<string>
   prioritization: AISuggestion<string>
@@ -116,9 +117,9 @@ export interface ReportSubmitResponse {
 
 export interface AirtableRecord {
   Client: string
-  'Page Name': string
+  'Page Name': string[]
   'Page Link': string
-  'App/Website Name': string
+  'App/Website Name': string[]
   Device: string[]
   'Operating System': string[]
   Browser: string[]
@@ -127,8 +128,9 @@ export interface AirtableRecord {
   Solution: string
   'Technical Solution': string
   Disability?: string[]
-  WCAG?: string
+  WCAG?: string[]
   'WCAG Level'?: string
+  'WCAG Category'?: string[]
   'Team of Interest'?: string[]
   Prioritization?: string
   'Level of complexity'?: string

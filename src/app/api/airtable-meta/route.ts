@@ -39,6 +39,7 @@ export interface FieldNames {
   techSolution: string
   wcag: string
   wcagLevel: string
+  wcagCategory: string
   disability: string
   team: string
   prioritization: string
@@ -60,6 +61,7 @@ function getFieldNames(): FieldNames {
     techSolution: process.env.AIRTABLE_FIELD_TECH_SOLUTION ?? 'Technical Solution',
     wcag: process.env.AIRTABLE_FIELD_WCAG ?? 'WCAG',
     wcagLevel: process.env.AIRTABLE_FIELD_WCAG_LEVEL ?? 'WCAG Level',
+    wcagCategory: process.env.AIRTABLE_FIELD_WCAG_CATEGORY ?? 'WCAG Category',
     disability: process.env.AIRTABLE_FIELD_DISABILITY ?? 'Disability',
     team: process.env.AIRTABLE_FIELD_TEAM ?? 'Team of Interest',
     prioritization: process.env.AIRTABLE_FIELD_PRIORITIZATION ?? 'Prioritization',

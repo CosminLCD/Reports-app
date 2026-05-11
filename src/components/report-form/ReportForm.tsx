@@ -92,6 +92,7 @@ export function ReportForm() {
             disability: airtableOptions[fieldNames.disability],
             prioritization: airtableOptions[fieldNames.prioritization],
             levelOfComplexity: airtableOptions[fieldNames.complexity],
+            wcagCategory: airtableOptions[fieldNames.wcagCategory],
           })}
           onManualMode={enableManualMode}
           onBack={() => goToStep(1)}

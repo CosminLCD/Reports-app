@@ -69,6 +69,7 @@ export interface PromptSelectOptions {
   teamOfInterest?: string[]
   prioritization?: string[]
   levelOfComplexity?: string[]
+  wcagCategory?: string[]
 }
 
 export function buildAccessibilityAnalysisPrompt(
@@ -140,6 +141,7 @@ Schema JSON exactă cerută:
   "technicalSolution": "string - ${fieldInstructions.technicalSolution}",
   "wcag": "string - criteriile WCAG relevante în format X.X.X, separate prin '/' dacă sunt mai multe (ex: \"1.4.3\" sau \"1.4.3/2.1.1\" sau \"1.3.1/1.4.1/2.4.6\"). Include toate criteriile care se aplică problemei, maxim 3.",
   "wcagLevel": "string - nivelul de conformitate WCAG, una din: A | AA | AAA",
+  "wcagCategory": "string - categoria/categoriile WCAG${selectOptions?.wcagCategory?.length ? `, una sau mai multe din: ${selectOptions.wcagCategory.join(' | ')}, separate prin '/' dacă sunt mai multe` : ', separate prin \"/\" dacă sunt mai multe'}",
   "disability": "string - tipurile de dizabilitate afectate${selectOptions?.disability?.length ? `, una sau mai multe din: ${selectOptions.disability.join(' | ')}, separate prin '/' dacă sunt mai multe (ex: \"Visual\" sau \"Visual/Motor\")` : ', separate prin \"/\" dacă sunt mai multe'}",
   "teamOfInterest": "string - echipele responsabile${selectOptions?.teamOfInterest?.length ? `, una sau mai multe din: ${selectOptions.teamOfInterest.join(' | ')}, separate prin '/' dacă sunt mai multe (ex: \"Design\" sau \"Design/Tehnic\")` : ', separate prin \"/\" dacă sunt mai multe'}",
   "prioritization": "string${selectOptions?.prioritization?.length ? ` - una din: ${selectOptions.prioritization.join(' | ')}` : ' - prioritatea problemei'}",
@@ -155,5 +157,6 @@ Reguli obligatorii:
 - "levelOfComplexity" Mare = necesită refactoring semnificativ al componentelor
 - Dacă există imagine atașată, analizează-o vizual pentru a înțelege mai bine problema
 - "disability" trebuie să conțină doar valori din lista furnizată, separate prin '/' dacă sunt mai multe
+- "wcagCategory" trebuie să conțină doar valori din lista furnizată (dacă există), separate prin '/' dacă sunt mai multe
 - Câmpurile "problem", "shortDescription", "solution", "disability" trebuie scrise în limba română`
 }

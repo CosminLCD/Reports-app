@@ -7,6 +7,20 @@ import { PriorityBadge, ComplexityBadge } from '@/components/shared/PriorityBadg
 import type { AIAnalysisResult, AISuggestion, CustomField } from '@/types'
 import { getEffectiveValue } from '@/types'
 import type { FieldOptions, FieldNames } from '@/app/api/airtable-meta/route'
+import { getCriterion, getUnderstandingUrl, type WCAGLevel } from '@/lib/wcag-criteria'
+
+function WCAGLevelBadge({ level }: { level: WCAGLevel }) {
+  const styles: Record<WCAGLevel, string> = {
+    A: 'bg-gray-200 text-gray-700',
+    AA: 'bg-blue-200 text-blue-800',
+    AAA: 'bg-purple-200 text-purple-800',
+  }
+  return (
+    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${styles[level]}`}>
+      {level}
+    </span>
+  )
+}
 
 function MetadataSelectCard({
   label,
@@ -179,6 +193,49 @@ function WCAGChipsCard({
           </span>
         ))}
       </div>
+      {chips.length > 0 && (
+        <div className="mb-2 space-y-1.5 rounded bg-white/60 border border-blue-100 p-2">
+          {chips.map((num) => {
+            const info = getCriterion(num)
+            return (
+              <div
+                key={num}
+                className={`flex items-start gap-2 p-1.5 rounded ${info ? '' : 'bg-amber-50 border border-amber-200'}`}
+              >
+                <span className="font-mono text-xs font-semibold text-blue-800 shrink-0 pt-0.5 w-12">
+                  {num}
+                </span>
+                <div className="flex-1 min-w-0">
+                  {info ? (
+                    <>
+                      <div className="text-xs font-semibold text-gray-800">
+                        {info.nameRo}{' '}
+                        <span className="font-normal text-gray-400">· {info.name}</span>
+                      </div>
+                      <div className="text-xs text-gray-600 leading-snug">{info.shortDesc}</div>
+                    </>
+                  ) : (
+                    <div className="text-xs text-amber-700">
+                      Criteriu necunoscut — verifică numărul
+                    </div>
+                  )}
+                </div>
+                {info && <WCAGLevelBadge level={info.level} />}
+                <a
+                  href={getUnderstandingUrl(num)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Deschide pagina W3C pentru criteriul ${num}`}
+                  className="text-blue-600 hover:text-blue-800 text-sm shrink-0 leading-none pt-0.5"
+                  title="Deschide sursa W3C (Understanding)"
+                >
+                  ↗
+                </a>
+              </div>
+            )
+          })}
+        </div>
+      )}
       <div className="flex gap-1.5">
         <input
           value={inputVal}
@@ -301,6 +358,14 @@ export function Step3AIReview({
             options={airtableOptions[fieldNames.wcagLevel] ?? []}
             onEdit={(v) => onUpdateSuggestion('wcagLevel', { edited: true, accepted: false, rejected: false, userValue: v as 'A' | 'AA' | 'AAA' })}
           />
+          {(airtableOptions[fieldNames.wcagCategory]?.length ?? 0) > 0 && (
+            <MultiToggleCard
+              label="Categorie WCAG"
+              suggestion={analysis.wcagCategory as AISuggestion<string>}
+              options={airtableOptions[fieldNames.wcagCategory] ?? []}
+              onEdit={(v) => onUpdateSuggestion('wcagCategory', { edited: true, accepted: false, rejected: false, userValue: v })}
+            />
+          )}
         </div>
       </section>
 

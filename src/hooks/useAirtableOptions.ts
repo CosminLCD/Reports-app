@@ -17,6 +17,7 @@ const DEFAULT_FIELD_NAMES: FieldNames = {
   techSolution: 'Technical Solution',
   wcag: 'WCAG',
   wcagLevel: 'WCAG Level',
+  wcagCategory: 'WCAG Category',
   disability: 'Disability',
   team: 'Team of Interest',
   prioritization: 'Prioritization',

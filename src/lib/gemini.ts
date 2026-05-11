@@ -11,6 +11,7 @@ interface RawAnalysis {
   technicalSolution: string
   wcag: string
   wcagLevel: string
+  wcagCategory: string
   disability: string
   teamOfInterest: string
   prioritization: string
@@ -32,6 +33,7 @@ function transformToAISuggestions(raw: RawAnalysis): AIAnalysisResult {
     technicalSolution: makeSuggestion(raw.technicalSolution ?? ''),
     wcag: makeSuggestion(raw.wcag ?? ''),
     wcagLevel: makeSuggestion((raw.wcagLevel ?? '') as AIAnalysisResult['wcagLevel']['value']),
+    wcagCategory: makeSuggestion(raw.wcagCategory ?? ''),
     disability: makeSuggestion(raw.disability ?? ''),
     teamOfInterest: makeSuggestion(raw.teamOfInterest ?? ''),
     prioritization: makeSuggestion(raw.prioritization ?? ''),

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { mapAIError } from '@/lib/api-errors'
+
+export const maxDuration = 300
 
 const { regenerateSingleField } = process.env.GEMINI_API_KEY
   ? await import('@/lib/gemini')
@@ -53,11 +56,9 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return NextResponse.json({ success: true, value })
   } catch (error) {
-    console.error('Eroare regenerare câmp AI:', error)
     const provider = process.env.GEMINI_API_KEY ? 'Gemini' : 'Anthropic'
-    return NextResponse.json(
-      { success: false, error: `Eroare server. Verificați API key-ul ${provider}.` },
-      { status: 500 }
-    )
+    console.error(`Eroare regenerare câmp AI (${provider}):`, error)
+    const { message, status } = mapAIError(error, provider)
+    return NextResponse.json({ success: false, error: message }, { status })
   }
 }

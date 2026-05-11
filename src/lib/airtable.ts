@@ -18,6 +18,7 @@ const F = {
   TECH_SOLUTION:process.env.AIRTABLE_FIELD_TECH_SOLUTION?? 'Technical Solution',
   WCAG:         process.env.AIRTABLE_FIELD_WCAG         ?? 'WCAG',
   WCAG_LEVEL:   process.env.AIRTABLE_FIELD_WCAG_LEVEL   ?? 'WCAG Level',
+  WCAG_CATEGORY:process.env.AIRTABLE_FIELD_WCAG_CATEGORY?? 'WCAG Category',
   DISABILITY:   process.env.AIRTABLE_FIELD_DISABILITY   ?? 'Disability',
   TEAM:         process.env.AIRTABLE_FIELD_TEAM         ?? 'Team of Interest',
   PRIORITIZATION: process.env.AIRTABLE_FIELD_PRIORITIZATION ?? 'Prioritization',
@@ -62,9 +63,9 @@ export function buildAirtableRecord(
 ): AirtableFields {
   const record: AirtableFields = {
     [F.CLIENT]:       manualFields.client,
-    [F.PAGE_NAME]:    manualFields.pages.map((p) => p.pageName).join('\n'),
-    [F.PAGE_LINK]:    manualFields.pages.map((p) => p.pageLink).join('\n'),
-    [F.APP_NAME]:     [...new Set(manualFields.pages.map((p) => p.appWebsiteName).filter(Boolean))].join('\n'),
+    [F.PAGE_NAME]:    [...new Set(manualFields.pages.map((p) => p.pageName).filter(Boolean))],
+    [F.PAGE_LINK]:    [...new Set(manualFields.pages.map((p) => p.pageLink).filter(Boolean))].join('\n'),
+    [F.APP_NAME]:     [...new Set(manualFields.pages.map((p) => p.appWebsiteName).filter(Boolean))],
     [F.DEVICE]:       manualFields.device,
     [F.OS]:           manualFields.operatingSystem,
     [F.BROWSER]:      manualFields.browser,
@@ -74,8 +75,13 @@ export function buildAirtableRecord(
     [F.TECH_SOLUTION]:getEffectiveValue(analysis.technicalSolution) ?? '',
   }
 
-  setIfNotEmpty(record, F.WCAG, getEffectiveValue(analysis.wcag))
+  const wcag = getEffectiveValue(analysis.wcag)
+  if (wcag) record[F.WCAG] = wcag.split('/').map((s) => s.trim()).filter(Boolean)
+
   setIfNotEmpty(record, F.WCAG_LEVEL, getEffectiveValue(analysis.wcagLevel))
+
+  const wcagCategory = getEffectiveValue(analysis.wcagCategory)
+  if (wcagCategory) record[F.WCAG_CATEGORY] = wcagCategory.split('/').map((s) => s.trim()).filter(Boolean)
 
   const disability = getEffectiveValue(analysis.disability)
   if (disability) record[F.DISABILITY] = disability.split('/').map((s) => s.trim()).filter(Boolean)
@@ -109,7 +115,7 @@ export async function createAirtableRecord(fields: AirtableFields): Promise<stri
       Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ fields }),
+    body: JSON.stringify({ fields, typecast: true }),
   })
 
   if (!response.ok) {
