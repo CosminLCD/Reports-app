@@ -86,7 +86,7 @@ export async function analyzeAccessibilityIssue(
   contentBlocks.push({ type: 'text', text: textPrompt })
 
   const message = await client.messages.create({
-    model: 'claude-opus-4-5',
+    model: 'claude-sonnet-4-6',
     max_tokens: 2048,
     messages: [{ role: 'user', content: contentBlocks }],
   })
@@ -132,7 +132,7 @@ export async function regenerateSingleField(
   contentBlocks.push({ type: 'text', text: textPrompt })
 
   const message = await client.messages.create({
-    model: 'claude-opus-4-5',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     messages: [{ role: 'user', content: contentBlocks }],
   })
