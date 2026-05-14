@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/User/Desktop/Proiecte vs code/APASS/**)",
+      "Bash(dir \"c:\\\\Users\\\\User\\\\Desktop\\\\Proiecte vs code\\\\APASS\")",
+      "Read(//c/Users/User/Desktop/Proiecte vs code/**)",
+      "Bash(dir \"c:\\\\Users\\\\User\\\\Desktop\\\\Proiecte vs code\")",
+      "Bash(npm --version)",
+      "Bash(npm info *)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --src-dir --import-alias \"@/*\" --no-eslint --yes)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --src-dir --import-alias \"@/*\" --no-eslint --yes --name=\"reports-app\")",
+      "Bash(npm init *)",
+      "Bash(npm pkg *)",
+      "Bash(npm install *)"
+    ]
+  }
+}
